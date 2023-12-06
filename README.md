@@ -6,4 +6,9 @@ This is for Lab project to enable a free feeding for a certain time during a day
 3. The screen will also show the trigger start time as hour:minute.
 4. When BNC_OUT as output, it will send TTL out anytime when the pellet is taken (200ms), and when the trigger received (100ms).
 
+User instruction: 
+1. Replace the original FED3.cpp and FED3.h files with the one in my src_ZY folder
+2. Upload the TimedFreeFeed_ZY_20231205190920.ino file to FED3
+3. Set the sessionDuration if you need another one (default 3hr)
+
 Credit to Zengyou Ye @ NIH/NIDA/IRP
