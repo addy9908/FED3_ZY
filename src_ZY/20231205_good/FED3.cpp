@@ -942,6 +942,12 @@ void FED3::CreateFile() {
   stopfile = SD.open("stop.csv", FILE_READ);
   timedEnd = stopfile.parseInt();
   stopfile.close();
+  
+  //ZY: add for sessionduration
+  durationfile = SD.open("duration.csv", FILE_WRITE);
+  durationfile = SD.open("duration.csv", FILE_READ);
+  sessionDuration = durationfile.parseInt();
+  durationfile.close();
 
   // Name filename in format F###_MMDDYYNN, where MM is month, DD is day, YY is year, and NN is an incrementing number for the number of files initialized each day
   strcpy(filename, "FED_____________.CSV");  // placeholder filename
@@ -1350,15 +1356,18 @@ void FED3::SetDeviceNumber() {
           display.refresh();
         }
       }
+	  
+	  ///////////////////////////////
+	  
 	  while (setDuration == true) {
         // ZY: set duration of session
-        display.fillRect (5, 56, 120, 18, WHITE);
+        display.fillRect (5, 56, 120, 100, WHITE);
         delay (200);
         display.refresh();
 
         display.fillRect (0, 0, 200, 80, WHITE);
         display.setCursor(5, 46);
-        display.println("Set Timed_FF duration");
+        display.println("Set FF duration");
         display.setCursor(15, 70);
         display.print(sessionHour);
         display.print("  :  ");
@@ -1378,17 +1387,17 @@ void FED3::SetDeviceNumber() {
           sessionMinute += 1;
 		  EndTime = millis();
           if (sessionMinute > 60) {
-            timedEnd = 0;
+            sessionMinute = 0;
           }
         }
         if (millis() - EndTime > 5000) {  // if 5 seconds passes confirm time settings
-          setDuration= false;
-          display.setCursor(5, 95);
+          sessionDuration = (sessionHour*60 + sessionMinute) * 60000;
+		  setDuration= false;		  
+          display.setCursor(5, 105);
           display.println("...Timing set!");
           delay (1000);
           display.refresh();
-        }
-		sessionDuration = (sessionHour*60 + sessionMinute) * 60000;
+        }		
       }
       writeFEDmode();
       writeConfigFile();
@@ -1600,6 +1609,12 @@ void FED3::begin() {
   else {
     StartScreen();
   }
+  
+  // ZY: if the preset duration is 0, then set it to 3hr
+  if (!sessionDuration){
+	sessionDuration= 3*60*60000; //3hr
+	}
+    
   display.clearDisplay();
   display.refresh();
 }
@@ -1644,6 +1659,7 @@ void FED3::SelectMode() {
     EndTime = millis();
     SetFED = true;
     setTimed = true;
+	setDuration = true;
     SetDeviceNumber();
   }
 
@@ -1786,12 +1802,20 @@ void FED3::ClassicMenu () {
 
 //write a FEDmode file (this contains the last used FEDmode)
 void FED3::writeFEDmode() {
+  
+  //zy: store duration information
+  durationfile = SD.open("duration.csv", FILE_WRITE);
+  durationfile.rewind();
+  durationfile.println(sessionDuration);
+  durationfile.flush();
+  durationfile.close();  
+  
   ratiofile = SD.open("FEDmode.csv", FILE_WRITE);
   ratiofile.rewind();
   ratiofile.println(FEDmode);
   ratiofile.flush();
   ratiofile.close();
-
+  
   startfile = SD.open("start.csv", FILE_WRITE);
   startfile.rewind();
   startfile.println(timedStart);
@@ -1803,4 +1827,6 @@ void FED3::writeFEDmode() {
   stopfile.println(timedEnd);
   stopfile.flush();
   stopfile.close();
+  
+
 }

@@ -81,11 +81,12 @@ class FED3 {
 		// for Timed_FF zy
 		unsigned long sessionStartTime = 0;
 		unsigned long sessionTimer = 0;
-		unsigned long sessionDuration = 3*60*60000; //3hr
+		unsigned long sessionDuration;
 		int sessionHour;
 		int sessionMinute;
 		bool setDuration = false;
 		DateTime now();
+
 		
         
         // SD logging
@@ -95,6 +96,7 @@ class FED3 {
         File configfile;    // Create another file object
         File startfile;     // Create another file object
         File stopfile;      // Create another file object
+		File durationfile;      // ZY: Create file object to store sessionDuration
         char filename[21];  // Array for file name data logged to named in setup
         void logdata();
         void CreateFile();
