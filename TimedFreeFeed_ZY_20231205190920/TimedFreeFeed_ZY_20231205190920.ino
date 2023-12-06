@@ -10,6 +10,8 @@
 
 String sketch = "Timed_FF";               //Unique identifier text for each sketch (this will show up on the screen and in log file)
 FED3 fed3 (sketch);                             //Start the FED3 object
+//int pelletLimit[]={};                         // for future pellet limit exp
+//int sessionCount = 0;                         // for future pellet limit exp
 
 //unsigned long sessionDuration = 180000;           // session length 3min
 
@@ -37,8 +39,8 @@ void loop() {
 
   if (fed3.BNCinput == true){                   //Creates timer that starts when BNC input is recieved and updates following BNC input
     if (fed3.sessionTimer<fed3.sessionDuration){                   //Keeps house lights on for duration of session (60 minutes)
+    //add here for future to check if fed3.PelletCount>=pelletLimit[sessionCount]
       fed3.Feed(200);                           //Deliver pellet,will send a 200ms pulse when the pellet is taken.
-      fed3.logdata();
       //fed3.Timeout(5);                          //5s timeout  
       //displayMessage(String(fed3.sessionTimer/1000),105);            
     }
@@ -72,6 +74,7 @@ void resetSession() {
 }
 
 void initiateSession(int pulse) {                        // previous session infor will be on before next
+  //sessionCount++;                         //next pelletlimit will be: pelletLimit[sessionCount]
   pinMode(BNC_OUT, OUTPUT);                 //switch back for output
   fed3.disableSleep(); 
   if (pulse>0){

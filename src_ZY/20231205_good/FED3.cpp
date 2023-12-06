@@ -971,12 +971,12 @@ void FED3::writeHeader() {
 
 
   if (tempSensor == false){
-    logfile.println("MM:DD:YYYY hh:mm:ss,Library_Version,Session_type,Device_Number,Battery_Voltage,Motor_Turns,FR,Event,Active_Poke,Left_Poke_Count,Right_Poke_Count,Pellet_Count,Block_Pellet_Count,Retrieval_Time,InterPelletInterval,Poke_Time");
+    logfile.println("MM:DD:YYYY hh:mm:ss,MSec,Library_Version,Session_type,Device_Number,Battery_Voltage,Motor_Turns,FR,Event,Active_Poke,Left_Poke_Count,Right_Poke_Count,Pellet_Count,Block_Pellet_Count,Retrieval_Time,InterPelletInterval,Poke_Time");
   }
 
 
   if (tempSensor == true){
-    logfile.println("MM:DD:YYYY hh:mm:ss,Temp,Humidity,Library_Version,Session_type,Device_Number,Battery_Voltage,Motor_Turns,FR,Event,Active_Poke,Left_Poke_Count,Right_Poke_Count,Pellet_Count,Block_Pellet_Count,Retrieval_Time,InterPelletInterval,Poke_Time");
+    logfile.println("MM:DD:YYYY hh:mm:ss,MSec,Temp,Humidity,Library_Version,Session_type,Device_Number,Battery_Voltage,Motor_Turns,FR,Event,Active_Poke,Left_Poke_Count,Right_Poke_Count,Pellet_Count,Block_Pellet_Count,Retrieval_Time,InterPelletInterval,Poke_Time");
   }
 
 
@@ -1050,6 +1050,13 @@ void FED3::logdata() {
   logfile.print(now.second());
   logfile.print(",");
     
+  /////////////////////////////////
+  // ZY: Log time at millis
+  /////////////////////////////////
+  logfile.print(millis()); // Print library version
+  logfile.print(",");
+  
+  
   /////////////////////////////////
   // Log temp and humidity
   /////////////////////////////////
