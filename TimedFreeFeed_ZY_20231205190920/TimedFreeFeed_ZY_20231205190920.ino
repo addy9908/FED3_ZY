@@ -11,12 +11,13 @@
 String sketch = "Timed_FF";               //Unique identifier text for each sketch (this will show up on the screen and in log file)
 FED3 fed3 (sketch);                             //Start the FED3 object
 
-unsigned long sessionDuration = 180000;           // session length 3min
+//unsigned long sessionDuration = 180000;           // session length 3min
 
 void setup() {
   fed3.DisplayPokes = false;
   fed3.disableSleep(); 
-  fed3.sessionDuration = sessionDuration;   
+//  fed3.sessionDuration = sessionDuration;
+  fed3.setDuration = true;  
   fed3.begin();                 
 }
 
@@ -28,16 +29,18 @@ void loop() {
     displayMessage(String(fed3.sessionDuration/1000),105);
     fed3.ReadBNC(false);                        //set BNCinput=true, don't blinkgreen
     if (fed3.BNCinput){
-      displayMessage("Start:",65);
-      displayMessage(timeString(),85);
       initiateSession(100);
+      displayMessage("Start:",65);
+      displayMessage(timeString(),85);      
     }
   }
 
   if (fed3.BNCinput == true){                   //Creates timer that starts when BNC input is recieved and updates following BNC input
     if (fed3.sessionTimer<fed3.sessionDuration){                   //Keeps house lights on for duration of session (60 minutes)
       fed3.Feed(200);                           //Deliver pellet,will send a 200ms pulse when the pellet is taken.
-      //fed3.Timeout(5);                          //5s timeout              
+      fed3.logdata();
+      //fed3.Timeout(5);                          //5s timeout  
+      //displayMessage(String(fed3.sessionTimer/1000),105);            
     }
     else{
       displayMessage("End!",105);
@@ -82,6 +85,7 @@ void initiateSession(int pulse) {                        // previous session inf
   fed3.RightCount = 0;
   fed3.BlockPelletCount = 0;
   fed3.logdata();
+  fed3.UpdateDisplay();
 }
 
 void controlSleep(){
