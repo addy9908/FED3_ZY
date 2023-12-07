@@ -18,7 +18,7 @@ FED3 fed3 (sketch);                             //Start the FED3 object
 void setup() {
   fed3.DisplayPokes = false;
   fed3.disableSleep(); 
-//  fed3.sessionDuration = sessionDuration;
+  //  fed3.sessionDuration = sessionDuration;
   fed3.setDuration = true;  
   fed3.begin();                 
 }

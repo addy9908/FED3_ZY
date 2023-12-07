@@ -1384,6 +1384,7 @@ void FED3::SetDeviceNumber() {
 
         if (digitalRead(LEFT_POKE) == LOW) {
           sessionHour += 1;
+		  Click();
 		  EndTime = millis();
           if (sessionHour > 24) {
             sessionHour = 0;
@@ -1392,6 +1393,7 @@ void FED3::SetDeviceNumber() {
 
         if (digitalRead(RIGHT_POKE) == LOW) {
           sessionMinute += 1;
+		  Click();
 		  EndTime = millis();
           if (sessionMinute > 60) {
             sessionMinute = 0;
