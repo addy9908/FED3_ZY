@@ -29,6 +29,7 @@ void loop() {
     displayMessage("Wait",65);
     displayMessage("Trig",85);
     displayMessage(String(fed3.sessionDuration/1000),105);
+    //hibernation(23.5*60*60000-fed3.sessionDuration);    //Wake up 0.5 before next trigger to save battery have not set as input, replace with resetSession, and move this into there?
     fed3.ReadBNC(false);                        //set BNCinput=true, don't blinkgreen
     if (fed3.BNCinput){
       initiateSession(100);
@@ -69,8 +70,10 @@ void displayMessage(String message, int line) {
 
 void resetSession() {
   fed3.BNCinput=false;
-  fed3.enableSleep(); 
-  fed3.goToSleep();  //may directly use fed3.ReleaseMotor() to save battery
+  //pinMode(BNC_OUT, INPUT_PULLDOWN); // to wait up from hibernation following ext trigger
+  //fed3.enableSleep(); 
+  //fed3.goToSleep();  //may directly use fed3.ReleaseMotor() to save battery
+  // change last 2 with defined sleep
 }
 
 void initiateSession(int pulse) {                        // previous session infor will be on before next
@@ -89,6 +92,13 @@ void initiateSession(int pulse) {                        // previous session inf
   fed3.BlockPelletCount = 0;
   fed3.logdata();
   fed3.UpdateDisplay();
+}
+
+void hibernation(unsigned long millis){
+  fed3.ReleaseMotor();
+  delay (2); //let things settle
+  LowPower.sleep(millis); 
+  fed3.pelletTrigger();       //check pellet well to make sure it's not stuck thinking there's a pellet when there's not 
 }
 
 void controlSleep(){

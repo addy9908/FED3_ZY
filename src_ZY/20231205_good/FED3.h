@@ -85,9 +85,7 @@ class FED3 {
 		int sessionHour;
 		int sessionMinute;
 		bool setDuration = false;
-		DateTime now();
-
-		
+		DateTime now();		
         
         // SD logging
         SdFat SD;

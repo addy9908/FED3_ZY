@@ -47,6 +47,11 @@ static void outsideRightTriggerHandler(void) {
   pointerToFED3->rightTrigger();
 }
 
+//zy: wait up from hibernation/sleep
+//static void extWakeup(void){
+//  pointerToFED3->run();
+//}
+
 /**************************************************************************************************************************************************
                                                                                                         Main loop
 **************************************************************************************************************************************************/
@@ -255,6 +260,13 @@ void FED3::Feed(int pulse, bool pixelsoff) {
     if (PelletAvailable == false){
         pelletDispensed = dispenseTimer_ms(1500);  //delay between pellets that also checks pellet well
         numMotorTurns++;
+		
+		// zy: make sure end session if stuck with empty jam while time run out
+		run();
+		sessionTimer = millis()-sessionStartTime; //zy
+		if (sessionTimer>=sessionDuration && sessiontype == "Timed_FF"){ //zy
+			break;
+		}
 
         //Jam clearing movements
         if (pelletDispensed == false) {
@@ -1599,6 +1611,7 @@ void FED3::begin() {
   LowPower.attachInterruptWakeup(digitalPinToInterrupt(PELLET_WELL), outsidePelletTriggerHandler, CHANGE);
   LowPower.attachInterruptWakeup(digitalPinToInterrupt(LEFT_POKE), outsideLeftTriggerHandler, CHANGE);
   LowPower.attachInterruptWakeup(digitalPinToInterrupt(RIGHT_POKE), outsideRightTriggerHandler, CHANGE);
+  //LowPower.attachInterruptWakeup(digitalPinToInterrupt(BNC_OUT), extWakeup, CHANGE); //zy
 
   // Create data file for current session
   CreateDataFile();
