@@ -30,7 +30,7 @@ void loop() {
     displayMessage("Trig",85);
     displayMessage(String(fed3.sessionDuration/1000),105);
     //hibernation(23.5*60*60000-fed3.sessionDuration);    //Wake up 0.5 before next trigger to save battery have not set as input, replace with resetSession, and move this into there?
-    fed3.ReadBNC(false);                        //set BNCinput=true, don't blinkgreen
+    fed3.ReadBNC(true);                        //set BNCinput=true, blinkgreen
     if (fed3.BNCinput){
       initiateSession(100);
       displayMessage("Start:",65);
@@ -39,7 +39,7 @@ void loop() {
   }
 
   if (fed3.BNCinput == true){                   //Creates timer that starts when BNC input is recieved and updates following BNC input
-    if (fed3.sessionTimer<fed3.sessionDuration){                   //Keeps house lights on for duration of session (60 minutes)
+    if (fed3.sessionTimer<fed3.sessionDuration && fed3.jamClearTime<fed3.maxJamClear){                   //Keeps house lights on for duration of session (60 minutes), jamclear 2min
     //add here for future to check if fed3.PelletCount>=pelletLimit[sessionCount]
       fed3.Feed(200);                           //Deliver pellet,will send a 200ms pulse when the pellet is taken.
       //fed3.Timeout(5);                          //5s timeout  
@@ -81,12 +81,14 @@ void initiateSession(int pulse) {                        // previous session inf
   pinMode(BNC_OUT, OUTPUT);                 //switch back for output
   fed3.disableSleep(); 
   if (pulse>0){
-    fed3.BNC(BNC_OUT,1);
+    fed3.BNC(pulse,1);
   }
   fed3.sessionTimer = 0;                    //or millis()-fed3.sessionStartTime
-  fed3.Tone(4000,2000) ;                    //play 4kHz tone for 5s, may move to the end of if
+  //fed3.Tone(4000,10000) ;                    //play 4kHz tone for 10s, may move to the end of if
   fed3.Event="Start";
   fed3.PelletCount = 0;
+  fed3.jamClearTime = 0;
+  fed3.lastPellet = fed3.now().unixtime();
   fed3.LeftCount = 0;
   fed3.RightCount = 0;
   fed3.BlockPelletCount = 0;

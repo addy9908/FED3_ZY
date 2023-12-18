@@ -172,6 +172,7 @@ void FED3::Feed(int pulse, bool pixelsoff) {
       //while pellet is present and under 60s has elapsed
       while (digitalRead (PELLET_WELL) == LOW and retInterval < 60000) {  //After pellet is detected, hang here for up to 1 minute to detect when it is removed
         sessionTimer = millis()-sessionStartTime; //zy
+		//jamClearTime = rtc.now().unixtime()- lastPellet; //zy
 		retInterval = (millis() - pelletTime);
         DisplayRetrievalInt();
        
@@ -204,7 +205,7 @@ void FED3::Feed(int pulse, bool pixelsoff) {
         run();
 		sessionTimer = millis()-sessionStartTime; //zy
 		if (sessionTimer>=sessionDuration && sessiontype == "Timed_FF"){
-			break;
+			break; //break to loop for time
 		}										//zy
         //Log pokes while pellet is present 
         if (digitalRead(LEFT_POKE) == LOW) {             //If left poke is triggered
@@ -260,12 +261,16 @@ void FED3::Feed(int pulse, bool pixelsoff) {
     if (PelletAvailable == false){
         pelletDispensed = dispenseTimer_ms(1500);  //delay between pellets that also checks pellet well
         numMotorTurns++;
-		
+		jamClearTime = rtc.now().unixtime()- lastPellet; //zy in second
 		// zy: make sure end session if stuck with empty jam while time run out
 		run();
 		sessionTimer = millis()-sessionStartTime; //zy
 		if (sessionTimer>=sessionDuration && sessiontype == "Timed_FF"){ //zy
-			break;
+			break; //zy break for time counting
+		}
+		//zy max 2 min to clear jam, or define as out of pellet
+		if (jamClearTime>=maxJamClear && sessiontype == "Timed_FF"){ //zy
+			break; //zy break for time counting
 		}
 
         //Jam clearing movements
@@ -284,6 +289,7 @@ void FED3::Feed(int pulse, bool pixelsoff) {
             pelletDispensed = ClearJam();
           }
         }
+		//break;
     }
   } while (PelletAvailable == false);
 }
@@ -495,7 +501,7 @@ void FED3::pixelsOn(int R, int G, int B, int W) {
 void FED3::pixelsOff() {
   digitalWrite (MOTOR_ENABLE, HIGH);  //ENABLE motor driver
   delay (2); //let things settle
-    for (uint16_t i = 0; i < strip.numPixels(); i++) {
+  for (uint16_t i = 0; i < strip.numPixels(); i++) {
     strip.setPixelColor(i, 0,0,0,0);
     strip.show();   
   }
@@ -598,7 +604,11 @@ void FED3::ReadBNC(bool blinkGreen){
 		if (blinkGreen == true)
 		{
 		  digitalWrite(GREEN_LED, HIGH);
-		  delay (25);
+		  pixelsOn(0,0,0,10); //zy: W (RGBW)
+		  tone (BUZZER, 4000); //zy
+		  delay (10000); // ZY: change to 10s from 25ms
+		  noTone(BUZZER); //zy
+		  pixelsOn(0,0,0,0); //zy
 		  digitalWrite(GREEN_LED, LOW);
 		}		  
 	     BNCinput=true;
@@ -771,6 +781,13 @@ void FED3::DisplayJamClear() {
   display.fillRect (6, 20, 200, 22, WHITE);  //erase the data on screen without clearing the entire screen by pasting a white box over it
   display.setCursor(6, 36);
   display.print("Clearing jam");
+  display.refresh();
+}
+//zy
+void FED3::DisplayOutofPellet() {
+  display.fillRect (6, 20, 200, 22, WHITE);  //erase the data on screen without clearing the entire screen by pasting a white box over it
+  display.setCursor(6, 36);
+  display.print("Out of Pellet");
   display.refresh();
 }
 
@@ -1632,9 +1649,9 @@ void FED3::begin() {
     StartScreen();
   }
   
-  // ZY: if the preset duration is 0, then set it to 3hr
+  // ZY: if the preset duration is 0, then set it to 20hr
   if (!sessionDuration){
-	sessionDuration= 3*60*60000; //3hr
+	sessionDuration= 20*60*60000; //20hr
 	}
     
   display.clearDisplay();

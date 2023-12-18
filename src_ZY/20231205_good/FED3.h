@@ -82,10 +82,13 @@ class FED3 {
 		unsigned long sessionStartTime = 0;
 		unsigned long sessionTimer = 0;
 		unsigned long sessionDuration;
+		unsigned long jamClearTime = 0;
 		int sessionHour;
 		int sessionMinute;
 		bool setDuration = false;
-		DateTime now();		
+		DateTime now();
+		void DisplayOutofPellet();
+		unsigned long maxJamClear = 120; //second		
         
         // SD logging
         SdFat SD;
