@@ -86,9 +86,10 @@ void initiateSession(int pulse) {                        // previous session inf
   fed3.sessionTimer = 0;                    //or millis()-fed3.sessionStartTime
   //fed3.Tone(4000,10000) ;                    //play 4kHz tone for 10s, may move to the end of if
   fed3.Event="Start";
+  fed3.numMotorTurns = 0;
   fed3.PelletCount = 0;
-  fed3.jamClearTime = 0;
-  fed3.lastPellet = fed3.now().unixtime();
+  //fed3.jamClearTime = 0;
+  //fed3.lastPellet = fed3.now().unixtime();
   fed3.LeftCount = 0;
   fed3.RightCount = 0;
   fed3.BlockPelletCount = 0;
