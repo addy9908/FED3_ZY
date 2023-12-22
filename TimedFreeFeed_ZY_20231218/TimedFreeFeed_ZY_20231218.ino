@@ -28,7 +28,8 @@ void loop() {
   if (fed3.BNCinput == false){ 
     displayMessage("Wait",65);
     displayMessage("Trig",85);
-    displayMessage(String(fed3.sessionDuration/60000),105); //min
+    String sessionDuration = String(fed3.sessionDuration/(60*60000))+ ":" + String(fed3.sessionDuration/60000);
+    displayMessage(sessionDuration,105); //min
     //hibernation(23.5*60*60000-fed3.sessionDuration);    //Wake up 0.5 before next trigger to save battery have not set as input, replace with resetSession, and move this into there?
     fed3.ReadBNC(true);                        //set BNCinput=true, blinkgreen
     if (fed3.BNCinput){
@@ -39,7 +40,7 @@ void loop() {
   }
 
   if (fed3.BNCinput == true){                   //Creates timer that starts when BNC input is recieved and updates following BNC input
-    if (fed3.sessionTimer<fed3.sessionDuration && fed3.numMotorTurns<60){                   //Keeps house lights on for duration of session (60 minutes), jamclear 3 times
+    if (fed3.sessionTimer<fed3.sessionDuration && fed3.numMotorTurns<40){                   //Keeps house lights on for duration of session (60 minutes), jamclear 3 times
     //add here for future to check if fed3.PelletCount>=pelletLimit[sessionCount]
       fed3.Feed(200);                           //Deliver pellet,will send a 200ms pulse when the pellet is taken.
       //fed3.Timeout(5);                          //5s timeout  
