@@ -26,10 +26,10 @@ void setup() {
 void loop() {
   fed3.run();
   if (fed3.BNCinput == false){ 
-    displayMessage("Wait",65);
-    displayMessage("Trig",85);
-    String sessionDuration = String(fed3.sessionDuration/(60*60000))+ ":" + String(fed3.sessionDuration/60000);
-    displayMessage(sessionDuration,105); //min
+    displayMessage("WFT",65);
+    //displayMessage("Trig",85);
+    String sessionDuration = String(fed3.sessionDuration/3600000)+ ":" + String((fed3.sessionDuration%3600000)/60000);
+    displayMessage(sessionDuration,85); //min
     //hibernation(23.5*60*60000-fed3.sessionDuration);    //Wake up 0.5 before next trigger to save battery have not set as input, replace with resetSession, and move this into there?
     fed3.ReadBNC(true);                        //set BNCinput=true, blinkgreen
     if (fed3.BNCinput){
@@ -47,7 +47,8 @@ void loop() {
       //displayMessage(String(fed3.sessionTimer/1000),105);            
     }
     else{
-      displayMessage("End!",105);
+      displayMessage("End!",65);
+      displayMessage(timeString(),85);
       resetSession();
     }
   }
