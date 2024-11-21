@@ -22,6 +22,10 @@ When the BNC connector is in output mode:
 2. Upload the [**TimedFreeFeed_ZY_20231218.ino**](Firmware/TimedFreeFeed_ZY_20231218/TimedFreeFeed_ZY_20231218.ino) file to the FED3 device.  
 3. If needed, adjust the `sessionDuration` from its default of 3 hours.
 
+## Controller Box
+![Top View](Hardware/Top_View2.jpeg)
+More: [Whole View](Hardware/Whole_view.jpeg), [Top View2](Hardware/Top_View1.jpeg), [Front View](Hardware/Front_View.jpeg), [Back View](Hardware/Back_View.jpeg), [Side View1](Hardware/Side_View.jpeg), [Side View2](Hardware/Side_View2.jpeg)
+
 # 2. Optional: [Timed_FF_ZY.ino](Firmware/Timed_FF_ZY/Timed_FF_ZY.ino): 
 This special edition is designed to control the FED3 using its internal timer, allowing users to set the `start time` and `session duration`.
 
