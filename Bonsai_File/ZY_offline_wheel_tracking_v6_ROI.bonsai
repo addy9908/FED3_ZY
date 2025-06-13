@@ -1,0 +1,632 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<WorkflowBuilder Version="2.8.5"
+                 xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                 xmlns:cv="clr-namespace:Bonsai.Vision;assembly=Bonsai.Vision"
+                 xmlns:sys="clr-namespace:System;assembly=mscorlib"
+                 xmlns:rx="clr-namespace:Bonsai.Reactive;assembly=Bonsai.Core"
+                 xmlns:gui="clr-namespace:Bonsai.Gui;assembly=Bonsai.Gui"
+                 xmlns:ipy="clr-namespace:Bonsai.Scripting.IronPython;assembly=Bonsai.Scripting.IronPython"
+                 xmlns:scr="clr-namespace:Bonsai.Scripting.Expressions;assembly=Bonsai.Scripting.Expressions"
+                 xmlns:io="clr-namespace:Bonsai.IO;assembly=Bonsai.System"
+                 xmlns="https://bonsai-rx.org/2018/workflow">
+  <Workflow>
+    <Nodes>
+      <Expression xsi:type="ExternalizedMapping">
+        <Property Name="FileName" />
+        <Property Name="PlayRate" />
+      </Expression>
+      <Expression xsi:type="GroupWorkflow">
+        <Name>1. Set Parameters</Name>
+        <Workflow>
+          <Nodes>
+            <Expression xsi:type="ExternalizedMapping">
+              <Property Name="Value" DisplayName="FileName" />
+            </Expression>
+            <Expression xsi:type="PropertySource" TypeArguments="cv:FileCapture,sys:String">
+              <MemberName>FileName</MemberName>
+              <Value>C:\Users\yez4\Documents\F00_CamFP_2024-06-12T12_01_36_copy.avi</Value>
+            </Expression>
+            <Expression xsi:type="rx:ReplaySubject">
+              <Name>file_path</Name>
+              <rx:BufferSize xsi:nil="true" />
+            </Expression>
+            <Expression xsi:type="ExternalizedMapping">
+              <Property Name="Value" DisplayName="PlayRate" />
+            </Expression>
+            <Expression xsi:type="Combinator">
+              <Combinator xsi:type="DoubleProperty">
+                <Value>300</Value>
+              </Combinator>
+            </Expression>
+            <Expression xsi:type="rx:BehaviorSubject">
+              <Name>playRate</Name>
+            </Expression>
+            <Expression xsi:type="Combinator">
+              <Combinator xsi:type="DoubleProperty">
+                <Value>0</Value>
+              </Combinator>
+            </Expression>
+            <Expression xsi:type="rx:BehaviorSubject">
+              <Name>startPosition</Name>
+            </Expression>
+            <Expression xsi:type="Combinator">
+              <Combinator xsi:type="BooleanProperty">
+                <Value>false</Value>
+              </Combinator>
+            </Expression>
+            <Expression xsi:type="Combinator">
+              <Combinator xsi:type="rx:Take">
+                <rx:Count>1</rx:Count>
+              </Combinator>
+            </Expression>
+            <Expression xsi:type="rx:BehaviorSubject">
+              <Name>PlayingState</Name>
+            </Expression>
+            <Expression xsi:type="SubscribeSubject">
+              <Name>Start</Name>
+            </Expression>
+            <Expression xsi:type="Combinator">
+              <Combinator xsi:type="BooleanProperty">
+                <Value>true</Value>
+              </Combinator>
+            </Expression>
+            <Expression xsi:type="MulticastSubject">
+              <Name>PlayingState</Name>
+            </Expression>
+            <Expression xsi:type="SubscribeSubject">
+              <Name>Pause</Name>
+            </Expression>
+            <Expression xsi:type="Combinator">
+              <Combinator xsi:type="BooleanProperty">
+                <Value>false</Value>
+              </Combinator>
+            </Expression>
+            <Expression xsi:type="MulticastSubject">
+              <Name>PlayingState</Name>
+            </Expression>
+          </Nodes>
+          <Edges>
+            <Edge From="0" To="1" Label="Source1" />
+            <Edge From="1" To="2" Label="Source1" />
+            <Edge From="3" To="4" Label="Source1" />
+            <Edge From="4" To="5" Label="Source1" />
+            <Edge From="6" To="7" Label="Source1" />
+            <Edge From="8" To="9" Label="Source1" />
+            <Edge From="9" To="10" Label="Source1" />
+            <Edge From="11" To="12" Label="Source1" />
+            <Edge From="12" To="13" Label="Source1" />
+            <Edge From="14" To="15" Label="Source1" />
+            <Edge From="15" To="16" Label="Source1" />
+          </Edges>
+        </Workflow>
+      </Expression>
+      <Expression xsi:type="gui:PropertyGridBuilder">
+        <gui:Enabled>true</gui:Enabled>
+        <gui:Visible>true</gui:Visible>
+        <gui:HelpVisible>true</gui:HelpVisible>
+        <gui:ToolbarVisible>true</gui:ToolbarVisible>
+        <gui:AutoRefresh>false</gui:AutoRefresh>
+      </Expression>
+      <Expression xsi:type="VisualizerMapping" />
+      <Expression xsi:type="SubscribeSubject">
+        <Name>LeftCount</Name>
+      </Expression>
+      <Expression xsi:type="Format" />
+      <Expression xsi:type="PropertyMapping">
+        <PropertyMappings>
+          <Property Name="Text" />
+        </PropertyMappings>
+      </Expression>
+      <Expression xsi:type="gui:LabelBuilder">
+        <gui:Name>Left</gui:Name>
+        <gui:Enabled>true</gui:Enabled>
+        <gui:Visible>true</gui:Visible>
+        <gui:Font>Microsoft Sans Serif, 12pt, style=Bold</gui:Font>
+        <gui:Text>0</gui:Text>
+      </Expression>
+      <Expression xsi:type="VisualizerMapping" />
+      <Expression xsi:type="gui:ButtonBuilder">
+        <gui:Name>Start</gui:Name>
+        <gui:Enabled>true</gui:Enabled>
+        <gui:Visible>true</gui:Visible>
+        <gui:Font>Microsoft Sans Serif, 12pt, style=Bold</gui:Font>
+        <gui:Text>Start</gui:Text>
+      </Expression>
+      <Expression xsi:type="rx:PublishSubject">
+        <Name>Start</Name>
+      </Expression>
+      <Expression xsi:type="VisualizerMapping" />
+      <Expression xsi:type="SubscribeSubject">
+        <Name>Frame</Name>
+      </Expression>
+      <Expression xsi:type="Format" />
+      <Expression xsi:type="PropertyMapping">
+        <PropertyMappings>
+          <Property Name="Text" />
+        </PropertyMappings>
+      </Expression>
+      <Expression xsi:type="gui:LabelBuilder">
+        <gui:Name>Frame</gui:Name>
+        <gui:Enabled>true</gui:Enabled>
+        <gui:Visible>true</gui:Visible>
+        <gui:Font>Microsoft Sans Serif, 12pt, style=Bold</gui:Font>
+        <gui:Text>109</gui:Text>
+      </Expression>
+      <Expression xsi:type="VisualizerMapping" />
+      <Expression xsi:type="gui:ButtonBuilder">
+        <gui:Name>Pause</gui:Name>
+        <gui:Enabled>true</gui:Enabled>
+        <gui:Visible>true</gui:Visible>
+        <gui:Font>Microsoft Sans Serif, 12pt, style=Bold</gui:Font>
+        <gui:Text>Pause</gui:Text>
+      </Expression>
+      <Expression xsi:type="rx:PublishSubject">
+        <Name>Pause</Name>
+      </Expression>
+      <Expression xsi:type="VisualizerMapping" />
+      <Expression xsi:type="SubscribeSubject">
+        <Name>RightCount</Name>
+      </Expression>
+      <Expression xsi:type="Format" />
+      <Expression xsi:type="PropertyMapping">
+        <PropertyMappings>
+          <Property Name="Text" />
+        </PropertyMappings>
+      </Expression>
+      <Expression xsi:type="gui:LabelBuilder">
+        <gui:Name>Right</gui:Name>
+        <gui:Enabled>true</gui:Enabled>
+        <gui:Visible>true</gui:Visible>
+        <gui:Font>Microsoft Sans Serif, 12pt, style=Bold</gui:Font>
+        <gui:Text>0</gui:Text>
+      </Expression>
+      <Expression xsi:type="VisualizerMapping" />
+      <Expression xsi:type="gui:TableLayoutPanelBuilder">
+        <gui:Enabled>true</gui:Enabled>
+        <gui:Visible>true</gui:Visible>
+        <gui:ColumnCount>5</gui:ColumnCount>
+        <gui:RowCount>1</gui:RowCount>
+        <gui:ColumnStyles />
+        <gui:RowStyles />
+        <gui:CellSpans />
+      </Expression>
+      <Expression xsi:type="VisualizerMapping" />
+      <Expression xsi:type="gui:LabelBuilder">
+        <gui:Name>Gray_label</gui:Name>
+        <gui:Enabled>true</gui:Enabled>
+        <gui:Visible>true</gui:Visible>
+        <gui:Font>Microsoft Sans Serif, 12pt, style=Bold</gui:Font>
+        <gui:Text>1. Gray_threshold</gui:Text>
+      </Expression>
+      <Expression xsi:type="VisualizerMapping" />
+      <Expression xsi:type="gui:SliderBuilder">
+        <gui:Name>Gray</gui:Name>
+        <gui:Enabled>true</gui:Enabled>
+        <gui:Visible>true</gui:Visible>
+        <gui:Minimum>0</gui:Minimum>
+        <gui:Maximum>256</gui:Maximum>
+        <gui:DecimalPlaces xsi:nil="true" />
+        <gui:Value>131.84295612009237</gui:Value>
+      </Expression>
+      <Expression xsi:type="rx:BehaviorSubject">
+        <Name>gray_threshold</Name>
+      </Expression>
+      <Expression xsi:type="VisualizerMapping" />
+      <Expression xsi:type="gui:LabelBuilder">
+        <gui:Name>Wheel_label</gui:Name>
+        <gui:Enabled>true</gui:Enabled>
+        <gui:Visible>true</gui:Visible>
+        <gui:Font>Microsoft Sans Serif, 12pt, style=Bold</gui:Font>
+        <gui:Text>2. Wheel_threshold</gui:Text>
+      </Expression>
+      <Expression xsi:type="VisualizerMapping" />
+      <Expression xsi:type="gui:SliderBuilder">
+        <gui:Name>Wheel</gui:Name>
+        <gui:Enabled>true</gui:Enabled>
+        <gui:Visible>true</gui:Visible>
+        <gui:Minimum>5000</gui:Minimum>
+        <gui:Maximum>20000</gui:Maximum>
+        <gui:DecimalPlaces xsi:nil="true" />
+        <gui:Value>10000</gui:Value>
+      </Expression>
+      <Expression xsi:type="rx:BehaviorSubject">
+        <Name>Wheel_detect</Name>
+      </Expression>
+      <Expression xsi:type="VisualizerMapping" />
+      <Expression xsi:type="gui:TableLayoutPanelBuilder">
+        <gui:Enabled>true</gui:Enabled>
+        <gui:Visible>true</gui:Visible>
+        <gui:ColumnCount>4</gui:ColumnCount>
+        <gui:RowCount>1</gui:RowCount>
+        <gui:ColumnStyles />
+        <gui:RowStyles />
+        <gui:CellSpans />
+      </Expression>
+      <Expression xsi:type="VisualizerMapping" />
+      <Expression xsi:type="SubscribeSubject">
+        <Name>PlayingState</Name>
+      </Expression>
+      <Expression xsi:type="PropertyMapping">
+        <PropertyMappings>
+          <Property Name="Playing" />
+        </PropertyMappings>
+      </Expression>
+      <Expression xsi:type="SubscribeSubject">
+        <Name>file_path</Name>
+      </Expression>
+      <Expression xsi:type="PropertyMapping">
+        <PropertyMappings>
+          <Property Name="FileName" />
+        </PropertyMappings>
+      </Expression>
+      <Expression xsi:type="SubscribeSubject">
+        <Name>playRate</Name>
+      </Expression>
+      <Expression xsi:type="PropertyMapping">
+        <PropertyMappings>
+          <Property Name="PlaybackRate" />
+        </PropertyMappings>
+      </Expression>
+      <Expression xsi:type="SubscribeSubject">
+        <Name>startPosition</Name>
+      </Expression>
+      <Expression xsi:type="PropertyMapping">
+        <PropertyMappings>
+          <Property Name="StartPosition" />
+        </PropertyMappings>
+      </Expression>
+      <Expression xsi:type="Combinator">
+        <Combinator xsi:type="cv:FileCapture">
+          <cv:FileName>C:\Users\yez4\Documents\F00_CamFP_2024-06-12T12_01_36_copy.avi</cv:FileName>
+          <cv:PlaybackRate>300</cv:PlaybackRate>
+          <cv:StartPosition>0</cv:StartPosition>
+          <cv:PositionUnits>Frames</cv:PositionUnits>
+          <cv:Loop>false</cv:Loop>
+          <cv:Playing>false</cv:Playing>
+        </Combinator>
+      </Expression>
+      <Expression xsi:type="rx:PublishSubject">
+        <Name>video</Name>
+      </Expression>
+      <Expression xsi:type="Combinator">
+        <Combinator xsi:type="cv:Grayscale" />
+      </Expression>
+      <Expression xsi:type="SubscribeSubject">
+        <Name>gray_threshold</Name>
+      </Expression>
+      <Expression xsi:type="PropertyMapping">
+        <PropertyMappings>
+          <Property Name="ThresholdValue" />
+        </PropertyMappings>
+      </Expression>
+      <Expression xsi:type="Combinator">
+        <Combinator xsi:type="cv:Threshold">
+          <cv:ThresholdValue>131.84295612009237</cv:ThresholdValue>
+          <cv:MaxValue>255</cv:MaxValue>
+          <cv:ThresholdType>ToZero</cv:ThresholdType>
+        </Combinator>
+      </Expression>
+      <Expression xsi:type="ExternalizedMapping">
+        <Property Name="Regions" />
+      </Expression>
+      <Expression xsi:type="Combinator">
+        <Combinator xsi:type="cv:RoiActivity">
+          <cv:Regions>
+            <cv:ArrayOfPoint>
+              <cv:Point>
+                <cv:X>166</cv:X>
+                <cv:Y>112</cv:Y>
+              </cv:Point>
+              <cv:Point>
+                <cv:X>191</cv:X>
+                <cv:Y>112</cv:Y>
+              </cv:Point>
+              <cv:Point>
+                <cv:X>191</cv:X>
+                <cv:Y>122</cv:Y>
+              </cv:Point>
+              <cv:Point>
+                <cv:X>166</cv:X>
+                <cv:Y>122</cv:Y>
+              </cv:Point>
+            </cv:ArrayOfPoint>
+            <cv:ArrayOfPoint>
+              <cv:Point>
+                <cv:X>435</cv:X>
+                <cv:Y>76</cv:Y>
+              </cv:Point>
+              <cv:Point>
+                <cv:X>460</cv:X>
+                <cv:Y>76</cv:Y>
+              </cv:Point>
+              <cv:Point>
+                <cv:X>460</cv:X>
+                <cv:Y>86</cv:Y>
+              </cv:Point>
+              <cv:Point>
+                <cv:X>435</cv:X>
+                <cv:Y>86</cv:Y>
+              </cv:Point>
+            </cv:ArrayOfPoint>
+            <cv:ArrayOfPoint>
+              <cv:Point>
+                <cv:X>178</cv:X>
+                <cv:Y>210</cv:Y>
+              </cv:Point>
+              <cv:Point>
+                <cv:X>203</cv:X>
+                <cv:Y>210</cv:Y>
+              </cv:Point>
+              <cv:Point>
+                <cv:X>203</cv:X>
+                <cv:Y>220</cv:Y>
+              </cv:Point>
+              <cv:Point>
+                <cv:X>178</cv:X>
+                <cv:Y>220</cv:Y>
+              </cv:Point>
+            </cv:ArrayOfPoint>
+          </cv:Regions>
+          <cv:Operation>Sum</cv:Operation>
+        </Combinator>
+      </Expression>
+      <Expression xsi:type="rx:PublishSubject">
+        <Name>ROIs</Name>
+      </Expression>
+      <Expression xsi:type="VisualizerMapping" />
+      <Expression xsi:type="gui:TableLayoutPanelBuilder">
+        <gui:Enabled>true</gui:Enabled>
+        <gui:Visible>true</gui:Visible>
+        <gui:ColumnCount>1</gui:ColumnCount>
+        <gui:RowCount>3</gui:RowCount>
+        <gui:ColumnStyles />
+        <gui:RowStyles>
+          <gui:RowStyle>
+            <gui:SizeType>Absolute</gui:SizeType>
+            <gui:Height>50</gui:Height>
+          </gui:RowStyle>
+          <gui:RowStyle>
+            <gui:SizeType>Absolute</gui:SizeType>
+            <gui:Height>50</gui:Height>
+          </gui:RowStyle>
+          <gui:RowStyle>
+            <gui:Height>0</gui:Height>
+          </gui:RowStyle>
+        </gui:RowStyles>
+        <gui:CellSpans />
+      </Expression>
+      <Expression xsi:type="VisualizerMapping" />
+      <Expression xsi:type="gui:TableLayoutPanelBuilder">
+        <gui:Name>Click for UI</gui:Name>
+        <gui:Enabled>true</gui:Enabled>
+        <gui:Visible>true</gui:Visible>
+        <gui:ColumnCount>2</gui:ColumnCount>
+        <gui:RowCount>1</gui:RowCount>
+        <gui:ColumnStyles>
+          <gui:ColumnStyle>
+            <gui:SizeType>Absolute</gui:SizeType>
+            <gui:Width>300</gui:Width>
+          </gui:ColumnStyle>
+          <gui:ColumnStyle>
+            <gui:Width>0</gui:Width>
+          </gui:ColumnStyle>
+        </gui:ColumnStyles>
+        <gui:RowStyles />
+        <gui:CellSpans />
+      </Expression>
+      <Expression xsi:type="SubscribeSubject">
+        <Name>ROIs</Name>
+      </Expression>
+      <Expression xsi:type="SubscribeSubject">
+        <Name>Start</Name>
+      </Expression>
+      <Expression xsi:type="Combinator">
+        <Combinator xsi:type="rx:SkipUntil" />
+      </Expression>
+      <Expression xsi:type="ipy:PythonTransform">
+        <ipy:Name>Frame count</ipy:Name>
+        <ipy:Script>count = 0
+@returns(int)
+def process(value):
+  global count  
+  if value:
+    count = count+1
+  return count</ipy:Script>
+      </Expression>
+      <Expression xsi:type="rx:BehaviorSubject">
+        <Name>Frame</Name>
+      </Expression>
+      <Expression xsi:type="SubscribeSubject">
+        <Name>Wheel_detect</Name>
+      </Expression>
+      <Expression xsi:type="PropertyMapping">
+        <PropertyMappings>
+          <Property Name="Threshold" />
+        </PropertyMappings>
+      </Expression>
+      <Expression xsi:type="Combinator">
+        <Combinator xsi:type="cv:RoiActivityDetected">
+          <cv:Index>0</cv:Index>
+          <cv:Threshold>10000</cv:Threshold>
+        </Combinator>
+      </Expression>
+      <Expression xsi:type="ipy:PythonTransform">
+        <ipy:Name>Left</ipy:Name>
+        <ipy:Script>count = 0
+pre = False
+@returns(int)
+def process(value):
+  global count,pre
+  if value:
+    if value!=pre:
+      count +=1
+    pre=value
+  else:
+    pre=False
+  return count</ipy:Script>
+      </Expression>
+      <Expression xsi:type="rx:BehaviorSubject">
+        <Name>LeftCount</Name>
+      </Expression>
+      <Expression xsi:type="Combinator">
+        <Combinator xsi:type="cv:RoiActivityDetected">
+          <cv:Index>1</cv:Index>
+          <cv:Threshold>10000</cv:Threshold>
+        </Combinator>
+      </Expression>
+      <Expression xsi:type="ipy:PythonTransform">
+        <ipy:Name>Right</ipy:Name>
+        <ipy:Script>count = 0
+pre = False
+@returns(int)
+def process(value):
+  global count,pre
+  if value:
+    if value!=pre:
+      count +=1
+    pre=value
+  else:
+    pre=False
+  return count</ipy:Script>
+      </Expression>
+      <Expression xsi:type="rx:BehaviorSubject">
+        <Name>RightCount</Name>
+      </Expression>
+      <Expression xsi:type="Combinator">
+        <Combinator xsi:type="rx:Zip" />
+      </Expression>
+      <Expression xsi:type="scr:ExpressionTransform">
+        <scr:Expression>new(
+Item1 as Frame,
+Item2 as Wheelcount_L,
+Item3 as Wheelcount_R
+)</scr:Expression>
+      </Expression>
+      <Expression xsi:type="SubscribeSubject">
+        <Name>Pause</Name>
+      </Expression>
+      <Expression xsi:type="Combinator">
+        <Combinator xsi:type="rx:TakeUntil" />
+      </Expression>
+      <Expression xsi:type="Combinator">
+        <Combinator xsi:type="rx:Repeat" />
+      </Expression>
+      <Expression xsi:type="SubscribeSubject">
+        <Name>file_path</Name>
+      </Expression>
+      <Expression xsi:type="Combinator">
+        <Combinator xsi:type="io:GetFileNameWithoutExtension" />
+      </Expression>
+      <Expression xsi:type="Combinator">
+        <Combinator xsi:type="io:GetDirectoryName" />
+      </Expression>
+      <Expression xsi:type="Combinator">
+        <Combinator xsi:type="rx:Zip" />
+      </Expression>
+      <Expression xsi:type="Format">
+        <Format>{1}\Output_wheel\{0}_.csv</Format>
+        <Selector>Item1,Item2</Selector>
+      </Expression>
+      <Expression xsi:type="PropertyMapping">
+        <PropertyMappings>
+          <Property Name="FileName" />
+        </PropertyMappings>
+      </Expression>
+      <Expression xsi:type="io:CsvWriter">
+        <io:FileName>C:\Users\yez4\Documents\Output_wheel\F00_CamFP_2024-06-12T12_01_36_copy_.csv</io:FileName>
+        <io:Append>false</io:Append>
+        <io:Overwrite>false</io:Overwrite>
+        <io:Suffix>Timestamp</io:Suffix>
+        <io:IncludeHeader>true</io:IncludeHeader>
+      </Expression>
+    </Nodes>
+    <Edges>
+      <Edge From="0" To="1" Label="Source1" />
+      <Edge From="2" To="3" Label="Source1" />
+      <Edge From="3" To="59" Label="Source1" />
+      <Edge From="4" To="5" Label="Source1" />
+      <Edge From="5" To="6" Label="Source1" />
+      <Edge From="6" To="7" Label="Source1" />
+      <Edge From="7" To="8" Label="Source1" />
+      <Edge From="8" To="25" Label="Source1" />
+      <Edge From="9" To="10" Label="Source1" />
+      <Edge From="10" To="11" Label="Source1" />
+      <Edge From="11" To="25" Label="Source2" />
+      <Edge From="12" To="13" Label="Source1" />
+      <Edge From="13" To="14" Label="Source1" />
+      <Edge From="14" To="15" Label="Source1" />
+      <Edge From="15" To="16" Label="Source1" />
+      <Edge From="16" To="25" Label="Source3" />
+      <Edge From="17" To="18" Label="Source1" />
+      <Edge From="18" To="19" Label="Source1" />
+      <Edge From="19" To="25" Label="Source4" />
+      <Edge From="20" To="21" Label="Source1" />
+      <Edge From="21" To="22" Label="Source1" />
+      <Edge From="22" To="23" Label="Source1" />
+      <Edge From="23" To="24" Label="Source1" />
+      <Edge From="24" To="25" Label="Source5" />
+      <Edge From="25" To="26" Label="Source1" />
+      <Edge From="26" To="57" Label="Source1" />
+      <Edge From="27" To="28" Label="Source1" />
+      <Edge From="28" To="37" Label="Source1" />
+      <Edge From="29" To="30" Label="Source1" />
+      <Edge From="30" To="31" Label="Source1" />
+      <Edge From="31" To="37" Label="Source2" />
+      <Edge From="32" To="33" Label="Source1" />
+      <Edge From="33" To="37" Label="Source3" />
+      <Edge From="34" To="35" Label="Source1" />
+      <Edge From="35" To="36" Label="Source1" />
+      <Edge From="36" To="37" Label="Source4" />
+      <Edge From="37" To="38" Label="Source1" />
+      <Edge From="38" To="57" Label="Source2" />
+      <Edge From="39" To="40" Label="Source1" />
+      <Edge From="40" To="47" Label="Source1" />
+      <Edge From="41" To="42" Label="Source1" />
+      <Edge From="42" To="47" Label="Source2" />
+      <Edge From="43" To="44" Label="Source1" />
+      <Edge From="44" To="47" Label="Source3" />
+      <Edge From="45" To="46" Label="Source1" />
+      <Edge From="46" To="47" Label="Source4" />
+      <Edge From="47" To="48" Label="Source1" />
+      <Edge From="48" To="49" Label="Source1" />
+      <Edge From="49" To="52" Label="Source1" />
+      <Edge From="50" To="51" Label="Source1" />
+      <Edge From="51" To="52" Label="Source2" />
+      <Edge From="52" To="54" Label="Source1" />
+      <Edge From="53" To="54" Label="Source2" />
+      <Edge From="54" To="55" Label="Source1" />
+      <Edge From="55" To="56" Label="Source1" />
+      <Edge From="56" To="57" Label="Source3" />
+      <Edge From="57" To="58" Label="Source1" />
+      <Edge From="58" To="59" Label="Source2" />
+      <Edge From="60" To="62" Label="Source1" />
+      <Edge From="61" To="62" Label="Source2" />
+      <Edge From="62" To="63" Label="Source1" />
+      <Edge From="62" To="67" Label="Source1" />
+      <Edge From="62" To="70" Label="Source1" />
+      <Edge From="63" To="64" Label="Source1" />
+      <Edge From="64" To="73" Label="Source1" />
+      <Edge From="65" To="66" Label="Source1" />
+      <Edge From="66" To="67" Label="Source2" />
+      <Edge From="66" To="70" Label="Source2" />
+      <Edge From="67" To="68" Label="Source1" />
+      <Edge From="68" To="69" Label="Source1" />
+      <Edge From="69" To="73" Label="Source2" />
+      <Edge From="70" To="71" Label="Source1" />
+      <Edge From="71" To="72" Label="Source1" />
+      <Edge From="72" To="73" Label="Source3" />
+      <Edge From="73" To="74" Label="Source1" />
+      <Edge From="74" To="76" Label="Source1" />
+      <Edge From="75" To="76" Label="Source2" />
+      <Edge From="76" To="77" Label="Source1" />
+      <Edge From="77" To="84" Label="Source1" />
+      <Edge From="78" To="79" Label="Source1" />
+      <Edge From="78" To="80" Label="Source1" />
+      <Edge From="79" To="81" Label="Source1" />
+      <Edge From="80" To="81" Label="Source2" />
+      <Edge From="81" To="82" Label="Source1" />
+      <Edge From="82" To="83" Label="Source1" />
+      <Edge From="83" To="84" Label="Source2" />
+    </Edges>
+  </Workflow>
+</WorkflowBuilder>
