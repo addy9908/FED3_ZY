@@ -1135,7 +1135,7 @@ class FPFEDSynchronizerGUI:
         # Build UI
         self.setup_ui(main_frame)
         
-    def log_message(self, message, msg_type='info'):
+    def log_message(self, title, message, msg_type='info'):
         """Add message to the log panel"""
         from datetime import datetime
         
@@ -1155,7 +1155,7 @@ class FPFEDSynchronizerGUI:
             prefix = "ℹ"
             color = 'blue'
         
-        log_entry = f"[{timestamp}] {prefix}\n {message}\n"
+        log_entry = f"[{timestamp}] {prefix} {title}\n{message}\n"
         
         # Enable text widget, add message, disable again
         self.message_log.config(state='normal')
@@ -1184,7 +1184,7 @@ class FPFEDSynchronizerGUI:
     def show_message(self, title, message, msg_type='info'):
         """Show message in both popup and log"""
         # Log the message
-        self.log_message(f"{title}: {message}", msg_type)
+        self.log_message(title, message, msg_type)
         
         # # Show popup
         # if msg_type == 'error':
@@ -1274,6 +1274,8 @@ class FPFEDSynchronizerGUI:
         
         # 5. Link them together
         self.message_log.config(yscrollcommand=log_scrollbar.set)
+        # self.message_log.insert(tk.END, "Choose option 1 to import pre-merged csv file, or option 2 to start from raw files")
+        self.show_message("Welcome", "Choose\nOption 1 to import pre-merged csv file\nOption 2 to start from raw files\nReset to start over")
         
         # --- Bottom: clear button ---
         clear_btn = tk.Button(
@@ -1363,17 +1365,23 @@ class FPFEDSynchronizerGUI:
         tk.Label(parent, text="wheel_L_col =", bg='white', font=('Arial', 9)).place(
                 x=5, y=y, width=140, height=25)
         self.Wheel_left_col = tk.Entry(parent, bg='lightgray')
-        self.Wheel_left_col.place(x=150, y=y, width=80, height=25)
+        self.Wheel_left_col.place(x=150, y=y, width=50, height=25)
         self.Wheel_left_col.insert(0, "8")
         
         tk.Label(parent, text="wheel_R_col =", bg='white', font=('Arial', 9)).place(
-                x=305, y=y, width=140, height=25)
+                x=205, y=y, width=140, height=25)
         self.Wheel_right_col = tk.Entry(parent, bg='lightgray')
-        self.Wheel_right_col.place(x=450, y=y, width=80, height=25)
+        self.Wheel_right_col.place(x=350, y=y, width=50, height=25)
         self.Wheel_right_col.insert(0, "9")
         
+        tk.Label(parent, text="wheel_Interval (s) =", bg='white', font=('Arial', 9)).place(
+                x=405, y=y, width=160, height=25)
+        self.Wheel_interval = tk.Entry(parent, bg='lightgray')
+        self.Wheel_interval.place(x=570, y=y, width=50, height=25)
+        self.Wheel_interval.insert(0, "5")
+        
         tk.Label(parent, text="fed_col =", bg='white', font=('Arial', 9)).place(
-                x=605, y=y, width=140, height=25)
+                x=635, y=y, width=140, height=25)
         self.fed_col = tk.Entry(parent, bg='lightgray')
         self.fed_col.place(x=750, y=y, width=80, height=25)
         self.fed_col.insert(0, "3")
@@ -1626,11 +1634,11 @@ class FPFEDSynchronizerGUI:
             
             self.show_message(
                 "Success",
-                f"""Loaded NPM CSV:
-                file_name: {self.filename}
-                Signal channels: {self.signal_channels}
-                DIO channels: {DIO_channels}
-                Time_step: {self.time_step}"""
+                ("Loaded NPM CSV:\n"
+                f"file_name: {self.filename}\n"
+                f"Signal channels: {self.signal_channels}\n"
+                f"DIO channels: {DIO_channels}\n"
+                f"Time_step: {self.time_step}")
                 )
             
         except Exception as e:
@@ -1711,11 +1719,13 @@ class FPFEDSynchronizerGUI:
             fed_col = int(self.fed_col.get())
             
             # Store or export as needed
-            print("FP loaded:", self.df_FP.shape)
-            print("CamFP loaded:", self.df_run.shape)
-            print("FED_L loaded:", self.df_fed_L.shape)
-            print("FED_R loaded:", self.df_fed_R.shape)
-            self.show_message("Success", "Files loaded and merged successfully!")
+            self.show_message("Success",
+                          ("Files loaded and merged successfully!\n"
+                           f"FP loaded: {self.df_FP.shape}\n"
+                           f"CamFP loaded: {self.df_run.shape}\n"
+                           f"FED_L loaded: {self.df_fed_L.shape}\n"
+                           f"FED_R loaded: {self.df_fed_R.shape}\n")
+                          )
             
             #retrend_event
             self.df_run = self.retrend_event(self.df_run,[wheel_L_col, wheel_R_col])
@@ -1728,15 +1738,16 @@ class FPFEDSynchronizerGUI:
             for df in [self.df_run, self.df_fed_L, self.df_fed_R]:
                 if not df.empty:
                     df[self.time_column] = df.iloc[:, 1] / 1000
-            print("All dataframes have Time_s column at the end now")      
+            self.show_message("Add Time(s)", "All dataframes have Time_s column at the end now")      
             
             if not self.df_run.empty:
                 self.df_run_L = self.df_run.iloc[:, [-1, wheel_L_col]]
                 self.df_run_R = self.df_run.iloc[:, [-1, wheel_R_col]]
             
             # get wheel on/off indices (ignore 1-turn run)
-            self.df_wheel_L_indices = self.get_wheel_indices(self.df_run_L,5,'DIO_wheel_L')
-            self.df_wheel_R_indices = self.get_wheel_indices(self.df_run_R,5,'DIO_wheel_R')
+            interval = float(self.Wheel_interval.get())
+            self.df_wheel_L_indices = self.get_wheel_indices(self.df_run_L, interval, 'DIO_wheel_L')
+            self.df_wheel_R_indices = self.get_wheel_indices(self.df_run_R, interval, 'DIO_wheel_R')
             
             # get feed on time with cum number
             if not self.df_fed_L.empty:
@@ -1753,7 +1764,7 @@ class FPFEDSynchronizerGUI:
                 self.save_path_entry.insert(0, self.output_path)
             
         except Exception as e:
-            messagebox.showerror("Error", f"Failed to load: {str(e)}")
+            self.show_message("Error", f"Failed to load: {str(e)}")
                 
     def retrend_event(self, df, col_list):
         """
@@ -1770,18 +1781,18 @@ class FPFEDSynchronizerGUI:
         # ---- 1. Handle df being None or wrong type ----
         if df is None or not isinstance(df, pd.DataFrame):
             # Just return whatever we got; caller can decide what to do
-            print('None')
+            # print('None')
             return df
 
         if isinstance(col_list, int):
             col_list = [col_list]
         elif not col_list:  # None or empty list/tuple
-            print('Not list')
+            # print('Not list')
             return df
        
         # ---- 3. If df is empty, nothing to do ----
         if df.empty:
-            print('Empty')
+            # print('Empty')
             return df
 
         df = df.dropna(subset=[df.columns[c] for c in col_list]).reset_index(drop=True)
@@ -1790,7 +1801,7 @@ class FPFEDSynchronizerGUI:
         for col in col_list:
             # skip invalid column indices
             if col < 0 or col >= n_cols:
-                print(f"Column index {col} out of range (0–{n_cols-1}), skipped.")
+                self.show_message("Warning", f"Column index {col} out of range (0–{n_cols-1}), skipped.")
                 continue
             
             s = df.iloc[:, col]
@@ -1799,10 +1810,10 @@ class FPFEDSynchronizerGUI:
             bad_pos = list(mask.to_numpy().nonzero()[0])  # integer positions
 
             if not bad_pos:
-                print(f"Don't found not sorted {df.columns[col]}.")
+                self.show_message("Warning", f"Don't found not sorted {df.columns[col]}.")
                 continue
 
-            print(f'Found not sorted {df.columns[col]}. Fix now...')
+            self.show_message("Warning", f'Found not sorted {df.columns[col]}. Fix now...')
             # add sentinel "end" position
             bad_pos.append(len(df))
 
@@ -1819,7 +1830,7 @@ class FPFEDSynchronizerGUI:
 
         return df
     
-    def get_wheel_indices(self, df_run, interval,DIO_lable):
+    def get_wheel_indices(self, df_run, interval, DIO_lable):
         print('working on this: on/off wheel PAIR based on interval, return self.df_DIO_run')
         #??? call add_Bonsai_DIO at the end
         # ---- Helper: interval filter for a single DIO column ----
@@ -2009,7 +2020,7 @@ class FPFEDSynchronizerGUI:
             self.show_message("Success", "FP cleaned and converted to dF/F!")
             
         except Exception as e:
-            messagebox.showerror("Error", f"Failed to clean FP: {str(e)}\n{traceback.format_exc()}")
+            self.show_message("Error", f"Failed to clean FP: {str(e)}\n{traceback.format_exc()}")
     
     def filterSignal(self, data, filter_window):
         """Apply filtfilt to signal"""
@@ -2041,7 +2052,7 @@ class FPFEDSynchronizerGUI:
             self.show_messageo("Success", "DIOs merged to DFF dataframe!")
             
         except Exception as e:
-            messagebox.showerror("Error", f"Failed to merge DIOs: {str(e)}\n{traceback.format_exc()}")
+            self.show_message("Error", f"Failed to merge DIOs: {str(e)}\n{traceback.format_exc()}")
     
     def add_bonsai_DIO(self, df, df_DIO, DIOs=None):
         """Add DIO columns to dataframe"""
@@ -2094,7 +2105,7 @@ class FPFEDSynchronizerGUI:
             self.show_message("Aligned", f"Aligned to CNO time at {self.cno_time:.3f}s")
             
         except Exception as e:
-            messagebox.showerror("Error", f"Failed to align: {str(e)}")
+            self.show_message("Error", f"Failed to align: {str(e)}")
 
     def align_to_cno_old(self):
         """Optional: Align to CNO time"""
@@ -2124,7 +2135,7 @@ class FPFEDSynchronizerGUI:
             self.show_message("Aligned", f"Aligned to CNO time at {self.cno_time:.3f}s")
             
         except Exception as e:
-            messagebox.showerror("Error", f"Failed to align: {str(e)}")
+            self.show_message("Error", f"Failed to align: {str(e)}")
     
     # ============== Channel Mapping Functions ==============
     
@@ -2169,7 +2180,7 @@ class FPFEDSynchronizerGUI:
         # Get selected event columns (multiple selection)
         event_indices = self.event_columns_listbox.curselection()
         if not event_indices:
-            messagebox.showwarning("Missing Info", "Please select at least one event column!")
+            self.show_message("Missing Info", "Please select at least one event column!")
             return
         
         event_columns = [self.event_columns_listbox.get(idx) for idx in event_indices]
@@ -2195,7 +2206,7 @@ class FPFEDSynchronizerGUI:
         selected_indices = self.mapping_listbox.curselection()
         
         if not selected_indices:
-            messagebox.showwarning("No Selection", "Please select a mapping to delete!")
+            self.show_message("No Selection", "Please select a mapping to delete!")
             return
         
         # Delete in reverse order to maintain indices
@@ -2230,11 +2241,11 @@ class FPFEDSynchronizerGUI:
         """Step 3: Align to DIOS and plot"""
         try:
             if self.NPM_dff.empty:
-                messagebox.showwarning("No Data", "Please load and process data first!")
+                self.show_message("No Data", "Please load and process data first!")
                 return
             
             if not self.mapping_list:
-                messagebox.showwarning("No Mapping", "Please add at least one channel mapping!")
+                self.show_message("No Mapping", "Please add at least one channel mapping!")
                 return
             
             # Get parameters
@@ -2252,7 +2263,7 @@ class FPFEDSynchronizerGUI:
                 for signal_col, signal_figs in self.figs.items():
                     for fig_name, fig in signal_figs.items():
                         plt.close(fig)
-                print(f"Closed {sum(len(figs) for figs in self.figs.values())} existing figures")
+                self.message("Close figures",f"Closed {sum(len(figs) for figs in self.figs.values())} existing figures")
             
             self.figs = {}  # Reset figures
             
@@ -2262,15 +2273,17 @@ class FPFEDSynchronizerGUI:
                 signal_channel = mapping['signal']  # Now single string instead of list
                 event_columns = mapping['events']
                 
-                print(f"\n{'='*60}")
-                print(f"Processing: {recording_name}")
-                print(f"Signal: {signal_channel}")
-                print(f"Events: {event_columns}")
-                print(f"{'='*60}")
+                self.message("Alignment",
+                         (f"{'='*60}\n"
+                          f"Processing: {recording_name}\n"
+                          f"Signal: {signal_channel}\n"
+                          f"Events: {event_columns}\n"
+                          f"{'='*60}")
+                         )
                 
                 # Check if signal exists
                 if signal_channel not in self.NPM_dff.columns:
-                    print(f"Warning: Signal {signal_channel} not found in data")
+                    self.message("Warning", f"Signal {signal_channel} not found in data")
                     continue
                 
                 # Use custom analyze function
@@ -2300,7 +2313,7 @@ class FPFEDSynchronizerGUI:
                               f"Generated {sum(len(figs) for figs in self.figs.values())} figure(s)")
             
         except Exception as e:
-            messagebox.showerror("Error", f"Failed to align and plot: {str(e)}\n{traceback.format_exc()}")
+            self.show_message("Error", f"Failed to align and plot: {str(e)}\n{traceback.format_exc()}")
     
     def analyze_with_mapping(self, recording_name, signal_col, event_cols, pre_time, post_time,
                             zscore_method, limit_available, ylabel):
@@ -2331,7 +2344,7 @@ class FPFEDSynchronizerGUI:
         peak_df, figures['peak_check'] = self.find_peaks_in_signals(zscore_df, signal_col)
         results['peak'] = peak_df
         
-        print(f"Found {len(results['peak'])} peaks in {signal_col} (prominence >= {self.peak_prominence})")
+        self.show_message("Peak finder", f"Found {len(results['peak'])} peaks in {signal_col} (prominence >= {self.peak_prominence})")
         
         # Add zscore column if needed
         zscore_col_name = f'{signal_col}_zscore'
@@ -2514,12 +2527,14 @@ class FPFEDSynchronizerGUI:
                 self.show_message("Success", f"Figures saved to:\n{filepath}")
                 
         except Exception as e:
-            messagebox.showerror("Error", f"Failed to save figures: {str(e)}")
+            self.show_message("Error", f"Failed to save figures: {str(e)}")
     
     def save_merged_csv(self):
-        print("\n" + "="*60)
-        print("SAVING Merged RESULTS AND FIGURES")
-        print("="*60)
+        self.show_message("Saving",
+                      (f"{'='*60}\n"
+                      "SAVING Merged RESULTS AND FIGURES\n"
+                      f"{'='*60}")
+                      )
         formatted_time = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
         
         save_path = os.path.join(self.output_path, os.path.basename(self.filename).split('.')[0] + f'_clean_NPM_{formatted_time}.csv')
@@ -2568,7 +2583,7 @@ class FPFEDSynchronizerGUI:
             # Close all plots
             plt.close('all')
             
-            print("Reset completed")
+            self.show_message("RESET","Reset completed")
 
 if __name__ == "__main__":
     root = tk.Tk()
