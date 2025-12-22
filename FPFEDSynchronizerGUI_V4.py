@@ -21,11 +21,62 @@ from matplotlib.backends.backend_pdf import PdfPages
 from scipy import signal #, stats
 from scipy.signal import find_peaks, peak_prominences
 from scipy.stats import zscore #, linregress
+from pyexcelerate import Workbook
 # import itertools
 # from collections import defaultdict
 
 # --------- Utilities ---------
 def safe_read_csv(filepath, expected_min_cols=3):
+    """
+    Reads a CSV with automatic delimiter detection and vector-optimized 
+    timestamp correction.
+    """
+    try:
+        # 'sep=None' with 'engine=python' enables auto-detection of delimiters
+        df = pd.read_csv(filepath, sep=None, engine='python', on_bad_lines='warn')
+        
+        # Fallback if auto-detection fails to find enough columns
+        if df.shape[1] < expected_min_cols:
+            df = pd.read_csv(filepath) 
+            
+    except Exception as e:
+        print(f"Read error: {e}")
+        return pd.DataFrame()
+
+    # 1. Efficient Cleaning
+    # Drop rows where the first column is NaN and drop fully empty columns
+    df = df.dropna(subset=[df.columns[0]]).dropna(axis=1, how='all')
+    
+    # 2. Optimized Timestamp Correction
+    comp_col = 'ComputerTimestamp'
+    sys_col = 'SystemTimestamp'
+    
+    if comp_col in df.columns and sys_col in df.columns:
+        # Detect where the clock resets (diff < 0)
+        is_reset = df[comp_col].diff().fillna(0) < 0
+        
+        if is_reset.any():
+            print('Detected timestamp resets. Applying vectorized fix...')
+            
+            # Calculate the gap (delta) at every point where a reset occurs
+            # Formula: (Prev_Comp + (Curr_Sys - Prev_Sys)*1000) - Curr_Comp
+            # We use .shift(1) to get "previous" values without looping
+            prev_comp = df[comp_col].shift(1)
+            prev_sys = df[sys_col].shift(1)
+            
+            deltas = (prev_comp + (df[sys_col] - prev_sys) * 1000) - df[comp_col]
+            
+            # Only keep deltas at reset points, others are 0
+            reset_deltas = np.where(is_reset, deltas, 0)
+            
+            # Use cumsum to propagate the correction to all subsequent rows
+            # This handles multiple resets in one file efficiently
+            total_correction = np.cumsum(reset_deltas)
+            df[comp_col] = df[comp_col] + total_correction
+
+    return df.reset_index(drop=True)
+
+def safe_read_csv_old(filepath, expected_min_cols=3):
     try:
         df = pd.read_csv(filepath, sep=';') # used in France as delimiter of csv
         if df.shape[1] < expected_min_cols:
@@ -880,6 +931,17 @@ def merge_figure_dicts(existing_figs, new_figs):
     
     return merged
 
+def flatten_defaultdict(d, parent_key='', sep='_'):
+    """Flatten nested dict/defaultdict structure"""
+    items = []
+    for k, v in d.items():
+        new_key = f"{parent_key}{sep}{k}" if parent_key else k
+        if isinstance(v, dict):
+            items.extend(flatten_defaultdict(v, new_key, sep=sep).items())
+        else:
+            items.append((new_key, v))
+    return dict(items)
+
 def save_results(results, filepath, format='pickle'):
     """
     Save event-triggered analysis results to file.
@@ -904,8 +966,107 @@ def save_results(results, filepath, format='pickle'):
         print(f"Saved complete results to {filepath}.pkl")
     
     elif format == 'excel':
+        # Save summary tables to Excel with multiple sheets using pyexcelerate     
+        wb = Workbook()
+        
+        # Flatten the results dictionary
+        flattened = flatten_defaultdict(results)
+        
+        # Separate parameters from data
+        parameter_rows = []
+        
+        for key, value in flattened.items():
+            # Handle DataFrames
+            if isinstance(value, pd.DataFrame) and not value.empty:
+                sheet_name = key[:31]  # Excel sheet name limit
+                # 1. Get headers
+                header = [value.index.name if value.index.name else 'index'] + value.columns.tolist()
+                
+                # 2. Reset index to turn the index into a column, then convert everything to a list
+                # This is much faster than looping with .loc
+                data_rows = value.reset_index().values.tolist()
+                
+                # 3. Combine header and data
+                data = [header] + data_rows
+                
+                wb.new_sheet(sheet_name, data=data)
+                print(f"  Added sheet: {sheet_name}")
+            
+            # Handle parameters (simple types)
+            elif isinstance(value, (str, bool, int, float)):
+                parameter_rows.append([key, str(value)])
+            
+            # Handle lists (e.g., signal_channels_available_signals)
+            elif isinstance(value, list):
+                parameter_rows.append([key, ', '.join(str(v) for v in value)])
+        
+        # Add Parameters sheet
+        if parameter_rows:
+            param_sheet_data = [['Parameter', 'Value']] + parameter_rows
+            wb.new_sheet('Parameters', data=param_sheet_data)
+            print(f"  Added sheet: Parameters ({len(parameter_rows)} parameters)")
+        
+        wb.save(f'{filepath}.xlsx')
+        print(f"Saved summary to {filepath}.xlsx")
+    
+    elif format == 'csv':
+        # Save each DataFrame as separate CSV
+        import os
+        os.makedirs(filepath, exist_ok=True)
+        
+        # Flatten the results
+        flattened = flatten_defaultdict(results)
+        
+        # Save parameters as CSV
+        parameter_rows = []
+        for key, value in flattened.items():
+            if isinstance(value, (str, bool, int, float)):
+                parameter_rows.append({'Parameter': key, 'Value': str(value)})
+            elif isinstance(value, list):
+                parameter_rows.append({'Parameter': key, 'Value': ', '.join(str(v) for v in value)})
+        
+        if parameter_rows:
+            param_df = pd.DataFrame(parameter_rows)
+            param_path = os.path.join(filepath, 'Parameters.csv')
+            param_df.to_csv(param_path, index=False)
+            print("  Saved Parameters.csv")
+        
+        # Save DataFrames
+        for key, value in flattened.items():
+            if isinstance(value, pd.DataFrame):
+                filename = f"{key}.csv"
+                full_path = os.path.join(filepath, filename)
+                value.to_csv(full_path)
+                print(f"  Saved {filename}")
+        
+        print(f"Saved CSV files to {filepath}/ directory")
+
+def save_results_old(results, filepath, format='pickle'):
+    """
+    Save event-triggered analysis results to file.
+    
+    Parameters:
+    -----------
+    results : dict
+        Results dictionary from analyze_signals_by_events
+    filepath : str
+        Path to save file (without extension for pickle/excel)
+    format : str
+        'pickle': Complete data (recommended for reloading)
+        'excel': Summary tables (human-readable) using pyexcelerate
+        'csv': Individual CSV files per signal/event
+    """
+    import pickle
+    
+    if format == 'pickle':
+        # Save complete results as pickle (best for reloading)
+        with open(f'{filepath}.pkl', 'wb') as f:
+            pickle.dump(results, f)
+        print(f"Saved complete results to {filepath}.pkl")
+    
+    elif format == 'excel':
         # Save summary tables to Excel with multiple sheets using pyexcelerate
-        from pyexcelerate import Workbook
+
         
         wb = Workbook()
         
@@ -1106,7 +1267,6 @@ class FPFEDSynchronizerGUI:
         
         self.NPM_dff = pd.DataFrame()
         self.NPM_zscore = pd.DataFrame()
-        self.peaks_info = {}  # Store peak info for each signal channel
         self.time_column = 'Time(s)'
         self.time_step = None
         self.signal_channels = []
@@ -1135,27 +1295,25 @@ class FPFEDSynchronizerGUI:
         # Build UI
         self.setup_ui(main_frame)
         
-    def log_message(self, title, message, msg_type='info'):
+    def log_message(self, title, message):
         """Add message to the log panel"""
-        from datetime import datetime
-        
         timestamp = datetime.now().strftime("%H:%M:%S")
         
         # Color coding based on message type
-        if msg_type == 'success':
-            prefix = "✓"
-            color = 'green'
-        elif msg_type == 'warning':
-            prefix = "⚠"
-            color = 'orange'
-        elif msg_type == 'error':
-            prefix = "✗"
-            color = 'red'
-        else:  # info
-            prefix = "ℹ"
-            color = 'blue'
+        tag_name = title.lower()
+        if tag_name == 'success':
+            prefix, color = "✓", 'green'
+        elif tag_name == 'warning':
+            prefix, color = "⚠", 'orange'
+        elif tag_name == 'error':
+            prefix, color = "✗", 'red'
+        else:
+            prefix, color = "ℹ", 'blue'
         
-        log_entry = f"[{timestamp}] {prefix} {title}\n{message}\n"
+        time_prefix = f"[{timestamp}] "
+        header_line = f"{time_prefix} {prefix} {title}\n"
+        body = f"{message}\n"
+        log_entry = header_line + body
         
         # Enable text widget, add message, disable again
         self.message_log.config(state='normal')
@@ -1163,11 +1321,16 @@ class FPFEDSynchronizerGUI:
         # Insert with color tag
         start_index = self.message_log.index('end-1c')
         self.message_log.insert(tk.END, log_entry)
-        # end_index = self.message_log.index('end-1c')
+
         
         # Apply color tag to the prefix
-        self.message_log.tag_add(msg_type, start_index, f"{start_index}+10c")
-        self.message_log.tag_config(msg_type, foreground=color, font=('Courier', 8, 'bold'))
+        header_offset_start = len(time_prefix)+1
+        header_length = len(prefix) + 1 + len(title)
+        tag_start = f"{start_index}+{header_offset_start}c"
+        tag_end = f"{tag_start}+{header_length}c"
+    
+        self.message_log.tag_config(tag_name, foreground=color, font=('Courier', 8, 'bold'))
+        self.message_log.tag_add(tag_name, start_index, tag_end)
         
         self.message_log.config(state='disabled')
         
@@ -1179,12 +1342,13 @@ class FPFEDSynchronizerGUI:
         self.message_log.config(state='normal')
         self.message_log.delete('1.0', tk.END)
         self.message_log.config(state='disabled')
-        self.log_message("Log cleared", 'info')
+        # self.log_message("Log cleared", 'info')
+        self.log_message("Welcome", "Choose\nOption 1: import pre-merged csv file\nOption 2: start from raw files\nReset: start over")
     
     def show_message(self, title, message, msg_type='info'):
         """Show message in both popup and log"""
         # Log the message
-        self.log_message(title, message, msg_type)
+        self.log_message(title, message)
         
         # # Show popup
         # if msg_type == 'error':
@@ -1275,7 +1439,7 @@ class FPFEDSynchronizerGUI:
         # 5. Link them together
         self.message_log.config(yscrollcommand=log_scrollbar.set)
         # self.message_log.insert(tk.END, "Choose option 1 to import pre-merged csv file, or option 2 to start from raw files")
-        self.show_message("Welcome", "Choose\nOption 1 to import pre-merged csv file\nOption 2 to start from raw files\nReset to start over")
+        self.show_message("Welcome", "Choose\nOption 1: import pre-merged csv file\nOption 2: start from raw files\nReset: start over")
         
         # --- Bottom: clear button ---
         clear_btn = tk.Button(
@@ -1594,7 +1758,7 @@ class FPFEDSynchronizerGUI:
         
         # save results
         tk.Button(parent, text="Save Results as excel", bg='red', fg='white', 
-                 font=('Arial', 11, 'bold'), command=self.save_result_data).place(
+                 font=('Arial', 11, 'bold'), command=self.save_results_file).place(
                  x=905, y=65, width=250, height=30)
                      
         # Reset button
@@ -1634,7 +1798,7 @@ class FPFEDSynchronizerGUI:
             
             self.show_message(
                 "Success",
-                ("Loaded NPM CSV:\n"
+                ("Loaded merged FP-events CSV:\n"
                 f"file_name: {self.filename}\n"
                 f"Signal channels: {self.signal_channels}\n"
                 f"DIO channels: {DIO_channels}\n"
@@ -1642,7 +1806,7 @@ class FPFEDSynchronizerGUI:
                 )
             
         except Exception as e:
-            messagebox.showerror("Error", f"Failed to load CSV: {e}")
+            self.show_message("Error", f"Failed to load merged CSV file: {e}")
     
     def add_fp(self):
         """Add FP files to the list"""
@@ -1738,7 +1902,7 @@ class FPFEDSynchronizerGUI:
             for df in [self.df_run, self.df_fed_L, self.df_fed_R]:
                 if not df.empty:
                     df[self.time_column] = df.iloc[:, 1] / 1000
-            self.show_message("Add Time(s)", "All dataframes have Time_s column at the end now")      
+            self.show_message("Success", "All dataframes have Time_s column at the end now")      
             
             if not self.df_run.empty:
                 self.df_run_L = self.df_run.iloc[:, [-1, wheel_L_col]]
@@ -1762,6 +1926,7 @@ class FPFEDSynchronizerGUI:
                 os.makedirs(self.output_path, exist_ok=True)
                 self.save_path_entry.delete(0, tk.END)
                 self.save_path_entry.insert(0, self.output_path)
+            self.show_message("1. Load and Merge", "Successfully loading and merging all the files")
             
         except Exception as e:
             self.show_message("Error", f"Failed to load: {str(e)}")
@@ -1813,7 +1978,7 @@ class FPFEDSynchronizerGUI:
                 self.show_message("Warning", f"Don't found not sorted {df.columns[col]}.")
                 continue
 
-            self.show_message("Warning", f'Found not sorted {df.columns[col]}. Fix now...')
+            self.show_message("Unsorted", f'Found not sorted {df.columns[col]}. Fix now...')
             # add sentinel "end" position
             bad_pos.append(len(df))
 
@@ -1828,7 +1993,8 @@ class FPFEDSynchronizerGUI:
                # add previous row's value to the segment [start:end)
                df.iloc[start:end, col] += df.iloc[start - 1, col]
 
-        return df
+            self.show_message("Success", f'Found not sorted {df.columns[col]}. Fix now...')        
+            return df
     
     def get_wheel_indices(self, df_run, interval, DIO_lable):
         print('working on this: on/off wheel PAIR based on interval, return self.df_DIO_run')
@@ -1968,7 +2134,7 @@ class FPFEDSynchronizerGUI:
         """Step 2: Clean FP to DFF"""
         try:
             if self.df_FP.empty:
-                messagebox.showwarning("No Data", "Please load FP files first!")
+                self.show_message("No Data", "Please load FP files first!")
                 return
             
             # Get parameters
@@ -2017,7 +2183,7 @@ class FPFEDSynchronizerGUI:
             # Refresh column list
             self.refresh_columns()
             
-            self.show_message("Success", "FP cleaned and converted to dF/F!")
+            self.show_message("2. clean FP to DFF", "Successfully cleaned and converted FP to dF/F!")
             
         except Exception as e:
             self.show_message("Error", f"Failed to clean FP: {str(e)}\n{traceback.format_exc()}")
@@ -2035,7 +2201,7 @@ class FPFEDSynchronizerGUI:
         """Step 3: Merge DIOs to DFF"""
         try:
             if self.NPM_dff.empty:
-                messagebox.showwarning("No Data", "Please clean FP to DFF first!")
+                self.show_message("Warning", "No NPM_dff found. Please clean FP to DFF first!")
                 return
             
             # Merge DIO indices
@@ -2049,7 +2215,7 @@ class FPFEDSynchronizerGUI:
             # Refresh columns
             self.refresh_columns()
             
-            self.show_messageo("Success", "DIOs merged to DFF dataframe!")
+            self.show_message("3. Merge DIOs to DFF", "Successfully merged DIOs to DFF dataframe!")
             
         except Exception as e:
             self.show_message("Error", f"Failed to merge DIOs: {str(e)}\n{traceback.format_exc()}")
@@ -2087,7 +2253,7 @@ class FPFEDSynchronizerGUI:
         try:
             cno_time_str = self.cno_time_entry.get().strip()
             if not cno_time_str:
-                messagebox.showwarning("Warning", "Please enter CNO time and load cam files!")
+                self.show_message("Warning", "Please enter CNO time and load cam files!")
                 return
             
             td = pd.to_timedelta(cno_time_str)
@@ -2102,7 +2268,7 @@ class FPFEDSynchronizerGUI:
                 if df is not None and not df.empty:
                     df[self.time_column] = df[self.time_column] - self.cno_time #all in sec
             
-            self.show_message("Aligned", f"Aligned to CNO time at {self.cno_time:.3f}s")
+            self.show_message("Optional: Align to CNO time", f"Successfully Aligned to CNO time at {self.cno_time:.3f}s")
             
         except Exception as e:
             self.show_message("Error", f"Failed to align: {str(e)}")
@@ -2112,7 +2278,7 @@ class FPFEDSynchronizerGUI:
         try:
             cno_time_str = self.cno_time_entry.get().strip()
             if not cno_time_str or self.df_run.empty:
-                messagebox.showwarning("Warning", "Please enter CNO time and load cam files!")
+                self.show_message("Warning", "Please enter CNO time and load cam files!")
                 return
             
             cno_time = pd.to_datetime(cno_time_str).time()
@@ -2132,7 +2298,7 @@ class FPFEDSynchronizerGUI:
                 if df is not None and not df.empty:
                     df[self.time_column] = df[self.time_column] - self.cno_time
             
-            self.show_message("Aligned", f"Aligned to CNO time at {self.cno_time:.3f}s")
+            self.show_message("Success", f"Aligned to CNO time at {self.cno_time:.3f}s")
             
         except Exception as e:
             self.show_message("Error", f"Failed to align: {str(e)}")
@@ -2166,13 +2332,13 @@ class FPFEDSynchronizerGUI:
         # Get recording name
         recording_name = self.recording_name_entry.get().strip()
         if not recording_name:
-            messagebox.showwarning("Missing Info", "Please enter a recording name!")
+            self.show_message("Warning", "Missing Info. Please enter a recording name!")
             return
         
         # Get selected signal channel (single selection)
         signal_selection = self.signal_channel_listbox.curselection()
         if not signal_selection:
-            messagebox.showwarning("Missing Info", "Please select one signal channel!")
+            self.show_message("Warning","Missing Info. Please select one signal channel!")
             return
         
         signal_channel = self.signal_channel_listbox.get(signal_selection[0])
@@ -2180,7 +2346,7 @@ class FPFEDSynchronizerGUI:
         # Get selected event columns (multiple selection)
         event_indices = self.event_columns_listbox.curselection()
         if not event_indices:
-            self.show_message("Missing Info", "Please select at least one event column!")
+            self.show_message("Warning", "Missing Info. Please select at least one event column!")
             return
         
         event_columns = [self.event_columns_listbox.get(idx) for idx in event_indices]
@@ -2206,7 +2372,7 @@ class FPFEDSynchronizerGUI:
         selected_indices = self.mapping_listbox.curselection()
         
         if not selected_indices:
-            self.show_message("No Selection", "Please select a mapping to delete!")
+            self.show_message("Warning", "No Selection. Please select a mapping to delete!")
             return
         
         # Delete in reverse order to maintain indices
@@ -2241,11 +2407,11 @@ class FPFEDSynchronizerGUI:
         """Step 3: Align to DIOS and plot"""
         try:
             if self.NPM_dff.empty:
-                self.show_message("No Data", "Please load and process data first!")
+                self.show_message("Warning", "No Data. Please load and process data first!")
                 return
             
             if not self.mapping_list:
-                self.show_message("No Mapping", "Please add at least one channel mapping!")
+                self.show_message("Warning", "No Mapping. Please add at least one channel mapping!")
                 return
             
             # Get parameters
@@ -2260,12 +2426,14 @@ class FPFEDSynchronizerGUI:
             
             # Close existing figures before creating new ones
             if self.figs:
-                for signal_col, signal_figs in self.figs.items():
-                    for fig_name, fig in signal_figs.items():
-                        plt.close(fig)
-                self.message("Close figures",f"Closed {sum(len(figs) for figs in self.figs.values())} existing figures")
+                for signal_col, signal_figs in list(self.figs.items()): #use list to avoid crash after deletion
+                    if isinstance(signal_figs, dict):
+                        for fig_name, fig in signal_figs.items():
+                            plt.close(fig)
+                            self.show_message("Success",f"Closed nested figure: {fig_name} from {signal_col}")
+                        del self.figs[signal_col]
             
-            self.figs = {}  # Reset figures
+            # self.figs = {}  # Reset figures
             
             # Process each mapping
             for mapping in self.mapping_list:
@@ -2273,17 +2441,15 @@ class FPFEDSynchronizerGUI:
                 signal_channel = mapping['signal']  # Now single string instead of list
                 event_columns = mapping['events']
                 
-                self.message("Alignment",
-                         (f"{'='*60}\n"
-                          f"Processing: {recording_name}\n"
+                self.show_message("Alignment",
+                         (f"Processing: {recording_name}\n"
                           f"Signal: {signal_channel}\n"
-                          f"Events: {event_columns}\n"
-                          f"{'='*60}")
-                         )
+                          f"Events: {event_columns}\n")
+                          )
                 
                 # Check if signal exists
                 if signal_channel not in self.NPM_dff.columns:
-                    self.message("Warning", f"Signal {signal_channel} not found in data")
+                    self.show_message("Warning", f"Signal {signal_channel} not found in data")
                     continue
                 
                 # Use custom analyze function
@@ -2310,7 +2476,7 @@ class FPFEDSynchronizerGUI:
             self.show_message("Success", 
                               f"Event alignment and plotting completed!\n"
                               f"Processed {len(self.mapping_list)} mapping(s)\n"
-                              f"Generated {sum(len(figs) for figs in self.figs.values())} figure(s)")
+                              f"Generated {sum(len(new_figs) for figs in self.figs.values())} figure(s)")
             
         except Exception as e:
             self.show_message("Error", f"Failed to align and plot: {str(e)}\n{traceback.format_exc()}")
@@ -2322,6 +2488,7 @@ class FPFEDSynchronizerGUI:
         
         results = {}
         figures = {}
+        peak_df = pd.DataFrame()
         
         ts_data = self.NPM_dff
         time_col = self.time_column
@@ -2338,13 +2505,14 @@ class FPFEDSynchronizerGUI:
         results['zscore'] = zscore_df
         
         # find peak with zscore
-        self.peak_prominence = float(self.peak_prominence_entry.get())
-        self.peak_bin_size = float(self.peak_bin_size_entry.get())
-        # Find peaks in z-scored data
-        peak_df, figures['peak_check'] = self.find_peaks_in_signals(zscore_df, signal_col)
-        results['peak'] = peak_df
-        
-        self.show_message("Peak finder", f"Found {len(results['peak'])} peaks in {signal_col} (prominence >= {self.peak_prominence})")
+        if self.find_peak_var.get():
+            self.peak_prominence = float(self.peak_prominence_entry.get())
+            self.peak_bin_size = float(self.peak_bin_size_entry.get())
+            # Find peaks in z-scored data
+            peak_df, figures['peak_check'] = self.find_peaks_in_signals(zscore_df, signal_col)
+            results['peak'] = peak_df
+            
+            self.show_message("Success", f"Peak Finder: found {len(results['peak'])} peaks in {signal_col} (prominence >= {self.peak_prominence})")
         
         # Add zscore column if needed
         zscore_col_name = f'{signal_col}_zscore'
@@ -2374,7 +2542,7 @@ class FPFEDSynchronizerGUI:
             zscore_col=zscore_col_name if zscore_method == 'full' else None
         )
         
-        results['events'] = epoch_results
+        results.update(epoch_results)
         
         # Plot event-triggered averages
         for event_name, event_dict in epoch_results.items(): #event_name is event_col name
@@ -2423,7 +2591,7 @@ class FPFEDSynchronizerGUI:
                     if peak_fig is not None:
                         peak_fig.suptitle(f"{recording_name} - {signal_col} - Peaks", 
                                         fontsize=14, fontweight='bold', y=0.998)
-                        plt.tight_layout(rect=[0, 0, 1, 0.99])
+                        # plt.tight_layout(rect=[0, 0, 1, 0.99])
                         figures[f'{event_name}_{evt_type}_peaks'] = peak_fig
               
         # Create unique key for this combination
@@ -2504,11 +2672,62 @@ class FPFEDSynchronizerGUI:
         
         return fig
     
+    def save_parameters_to_results(self):
+        """Save all GUI parameters to self.results['Parameters']"""
+        parameters = {
+            'analysis_info': {
+                'filename': self.filename if self.filename else 'N/A',
+                'output_path': self.output_path if self.output_path else 'N/A',
+                'time_column': self.time_column,
+                'cno_time': self.cno_time if self.cno_time else 'N/A'
+            },
+            'file_info': {
+                'n_fp_files': len(self.fp_files),
+                'n_cam_files': len(self.cam_files),
+                'n_fed_l_files': len(self.fed_l_files),
+                'n_fed_r_files': len(self.fed_r_files)
+            },
+            'fp_processing': {
+                'flag_470': self.flag_470,
+                'flag_415': self.flag_415,
+                'filter_window': self.filter_window,
+                'polyfit_cofs': self.polyfit_cofs,
+                'peak_prominence': self.peak_prominence
+            },
+            'column_indices': {
+                'wheel_L_col': self.Wheel_left_col.get() if hasattr(self, 'Wheel_left_col') else 'N/A',
+                'wheel_R_col': self.Wheel_right_col.get() if hasattr(self, 'Wheel_right_col') else 'N/A',
+                'wheel_interval': self.Wheel_interval.get() if hasattr(self, 'Wheel_interval') else 'N/A',
+                'fed_col': self.fed_col.get() if hasattr(self, 'fed_col') else 'N/A'
+            },
+            'alignment_parameters': {
+                'before_event_s': self.before_event_entry.get() if hasattr(self, 'before_event_entry') else 'N/A',
+                'after_event_s': self.after_event_entry.get() if hasattr(self, 'after_event_entry') else 'N/A',
+                'zscore_method': self.zscore_method.get() if hasattr(self, 'zscore_method') else 'N/A',
+                'limit_to_available': self.limit_available_var.get() if hasattr(self, 'limit_available_var') else False,
+                'peak_bin_size_s': self.peak_bin_size_entry.get() if hasattr(self, 'peak_bin_size_entry') else 'N/A'
+            },
+            'signal_channels': {
+                'available_signals': self.signal_channels if self.signal_channels else []
+            },
+            'channel_mappings': [
+                {
+                    'recording': m['recording'],
+                    'signal': m['signal'],
+                    'events': ', '.join(m['events'])
+                }
+                for m in self.mapping_list
+            ]
+        }
+        
+        self.results['Parameters'] = parameters
+        self.show_message("Success", "Parameters saved to results.")
+    
     def save_figures_pdf(self):
         """Step 4: Save figures as PDF"""
         try:
             if not self.figs:
-                messagebox.showwarning("No Figures", "Please align and plot first!")
+                self.show_message("Warning","No Figures. Please align and plot first!")
                 return
             
             # Get save path
@@ -2530,15 +2749,14 @@ class FPFEDSynchronizerGUI:
             self.show_message("Error", f"Failed to save figures: {str(e)}")
     
     def save_merged_csv(self):
-        self.show_message("Saving",
-                      (f"{'='*60}\n"
-                      "SAVING Merged RESULTS AND FIGURES\n"
-                      f"{'='*60}")
-                      )
+        self.show_message("Saving","SAVING Merged RESULTS")
+
         formatted_time = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
         
         save_path = os.path.join(self.output_path, os.path.basename(self.filename).split('.')[0] + f'_clean_NPM_{formatted_time}.csv')
         self.NPM_dff.to_csv(save_path, index=False)
+        
+        self.show_message("Success","Merged RESULTS SAVED.")
         
         # Save results
         # save_results(results_full_z, filename = 'event_analysis_results', format='pickle')
@@ -2547,12 +2765,41 @@ class FPFEDSynchronizerGUI:
         # Save figures as PDF
         # save_figures(figs, folder=self.output_path, format='pdf', dpi=300)
     
-    def save_result_data(self):
-        formatted_time = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-        filepath = os.path.join(self.output_path,f"event_analysis_summary_{formatted_time}")
-        save_results(self.results, filepath, format='excel')
-        
-        #also save the parameters
+    def save_results_file(self, format='excel'):
+        """Save results to file"""
+        try:
+            if not self.results:
+                self.show_message("Warning", "No result. Please align and plot first!")
+                return
+            
+            # Get save path
+            ext = '.xlsx' if format == 'excel' else '.pkl'
+            default_name = f"{self.filename.split('.')[0] if self.filename else 'results'}_{datetime.now().strftime('%Y%m%d_%H%M%S')}{ext}"
+            self.save_parameters_to_results()
+            
+            if format == 'excel':
+                filepath = filedialog.asksaveasfilename(
+                    initialdir=self.output_path,
+                    initialfile=default_name,
+                    defaultextension=".xlsx",
+                    filetypes=[("Excel files", "*.xlsx"), ("All files", "*.*")]
+                )
+            else:
+                filepath = filedialog.asksaveasfilename(
+                    initialdir=self.output_path,
+                    initialfile=default_name,
+                    defaultextension=".pkl",
+                    filetypes=[("Pickle files", "*.pkl"), ("All files", "*.*")]
+                )
+            
+            if filepath:
+                # Remove extension as save_results adds it
+                filepath_no_ext = filepath.rsplit('.', 1)[0]
+                save_results(self.results, filepath_no_ext, format=format)
+                self.show_message("Success", f"Results saved as {format.upper()}", 'success')
+                
+        except Exception as e:
+            self.show_message("Error", f"Failed to save results: {str(e)}", 'error')
     
     def reset(self):
         """Reset all fields"""
@@ -2573,7 +2820,6 @@ class FPFEDSynchronizerGUI:
             self.df_FP = pd.DataFrame()
             self.df_run = pd.DataFrame()
             self.NPM_dff = pd.DataFrame()
-            self.peaks_info = {}
             self.figs = {}
             self.results = {}
             
@@ -2582,6 +2828,9 @@ class FPFEDSynchronizerGUI:
             
             # Close all plots
             plt.close('all')
+            # self.clear_all_mappings()
+            self.mapping_list = []
+            self.update_mapping_display()
             
             self.show_message("RESET","Reset completed")
 
