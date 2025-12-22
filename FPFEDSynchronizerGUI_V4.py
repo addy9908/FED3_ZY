@@ -7,7 +7,7 @@ Contact: addy9908@gmail.com
 
 '''
 
-import os
+import os, re
 import traceback
 # import csv
 from datetime import datetime
@@ -959,6 +959,28 @@ def save_results(results, filepath, format='pickle'):
     """
     import pickle
     
+    ILLEGAL_CHARACTERS_RE = re.compile(
+        r"[\000-\010]|[\013-\014]|[\016-\037]|[\x7f-\x84]|[\x86-\x9f]|[\ufdd0-\ufdef]|[\ufffe-\uffff]"
+    )
+    
+    def clean_value(v):
+        if not isinstance(v, str):
+            return v
+        
+        # 1. Remove XML-breaking control characters
+        v = ILLEGAL_CHARACTERS_RE.sub("", v)
+        
+        # 2. Prevent Excel from treating strings as broken formulas
+        # If it starts with =, +, -, or @, Excel tries to calculate it.
+        if v.startswith(('=', '+', '-', '@')):
+            v = "'" + v  # Add a leading apostrophe (Excel's "treat as text" prefix)
+    
+        # 3. Truncate to Excel's max cell limit (32,767 chars)
+        if len(v) > 32767:
+            v = v[:32760] + "..."
+            
+        return v
+
     if format == 'pickle':
         # Save complete results as pickle (best for reloading)
         with open(f'{filepath}.pkl', 'wb') as f:
@@ -979,17 +1001,19 @@ def save_results(results, filepath, format='pickle'):
             # Handle DataFrames
             if isinstance(value, pd.DataFrame) and not value.empty:
                 sheet_name = key[:31]  # Excel sheet name limit
+                clean_sheet_name = re.sub(r'[\\/*?:\[\]]', "_", sheet_name) # Remove forbidden characters from the key
                 # 1. Get headers
                 header = [value.index.name if value.index.name else 'index'] + value.columns.tolist()
                 
                 # 2. Reset index to turn the index into a column, then convert everything to a list
                 # This is much faster than looping with .loc
                 data_rows = value.reset_index().values.tolist()
+                clean_data_rows = [[clean_value(cell) for cell in row] for row in data_rows]
                 
                 # 3. Combine header and data
-                data = [header] + data_rows
+                data = [header] + clean_data_rows
                 
-                wb.new_sheet(sheet_name, data=data)
+                wb.new_sheet(clean_sheet_name, data=data)
                 print(f"  Added sheet: {sheet_name}")
             
             # Handle parameters (simple types)
@@ -1779,7 +1803,7 @@ class FPFEDSynchronizerGUI:
             return
         
         try:
-            self.NPM_dff = pd.read_csv(file_path)
+            self.NPM_dff = safe_read_csv(file_path)
             self.time_step = float(round(self.NPM_dff[self.time_column].diff().mean(),6))
             self.filename = os.path.basename(file_path)
             self.output_path = os.path.join(os.path.dirname(file_path), "Output")
