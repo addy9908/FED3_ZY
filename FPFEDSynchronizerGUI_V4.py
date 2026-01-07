@@ -1264,7 +1264,7 @@ def fig_to_one_pdf(figs,filepath, filename):
 class FPFEDSynchronizerGUI:
     def __init__(self, root):
         self.root = root
-        self.root.title("FP_run_FED_synchronizor")
+        self.root.title("FP_run_FED_synchronizor_Zengyou")
         self.root.geometry("1650x1220")
         self.root.minsize(1650, 1220)
         
