@@ -13,7 +13,7 @@ from matplotlib.figure import Figure
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
 from scipy import signal
 from scipy.signal import find_peaks
-from scipy.stats import zscore
+# from scipy.stats import zscore
 
 # =============================================================================
 # CENTRAL DATA MANAGER
@@ -145,7 +145,7 @@ class Panel1_Browser(ttk.Frame):
 
     def make_list(self, p, title, lst, col):
         f = ttk.Frame(p); f.grid(row=0, column=col, padx=5, sticky="n")
-        ttk.Label(f, text=title).pack(); lb = tk.Listbox(f, height=5, width=22); lb.pack()
+        ttk.Label(f, text=title).pack(); lb = tk.Listbox(f, height=10, width=35); lb.pack()
         
         def add():
             for file in filedialog.askopenfilenames(filetypes=[("CSV", "*.csv")]):
@@ -193,7 +193,7 @@ class Panel2_FPProcess(ttk.Frame):
 
     def mk_ent(self, p, t, v, c):
         ttk.Label(p, text=t).grid(row=0, column=c)
-        e = ttk.Entry(p, width=4); e.insert(0, v); e.grid(row=0, column=c+1)
+        e = ttk.Entry(p, width=4); e.insert(0, v); e.grid(row=0, column=c+1, padx=10)
         return e
 
     def prepare(self):
@@ -270,15 +270,15 @@ class Panel3_CamProcess(ttk.Frame):
         super().__init__(parent); self.data_mgr = data_mgr
         ttk.Label(self, text="Step 3: CAM Wheel", font=("Helvetica", 12, "bold")).pack()
         f = ttk.Frame(self); f.pack()
-        ttk.Label(f, text="Wheel_L Col:").grid(row=0,column=0); self.el = ttk.Entry(f, width=4); self.el.insert(0,"8"); self.el.grid(row=0,column=1)
-        ttk.Label(f, text="Wheel_R Col:").grid(row=0,column=2); self.er = ttk.Entry(f, width=4); self.er.insert(0,"9"); self.er.grid(row=0,column=3)
-        ttk.Label(f, text="minimal Interval(s):").grid(row=0,column=4); self.ei = ttk.Entry(f, width=4); self.ei.insert(0,"5"); self.ei.grid(row=0,column=5)
+        ttk.Label(f, text="Wheel_L Col:").grid(row=0,column=0); self.el = ttk.Entry(f, width=4); self.el.insert(0,"8"); self.el.grid(row=0,column=1, padx=10)
+        ttk.Label(f, text="Wheel_R Col:").grid(row=0,column=2); self.er = ttk.Entry(f, width=4); self.er.insert(0,"9"); self.er.grid(row=0,column=3, padx=10)
+        ttk.Label(f, text="minimal Interval(s):").grid(row=0,column=4); self.ei = ttk.Entry(f, width=4); self.ei.insert(0,"5"); self.ei.grid(row=0,column=5, padx=10)
         
         btn_frame = ttk.Frame(self); btn_frame.pack(pady=5)
         ttk.Button(btn_frame, text="Process Data", command=self.proc).pack(side=tk.LEFT, padx=5)
         ttk.Label(btn_frame, text="X-Axis Unit:").pack(side=tk.LEFT, padx=5)
         self.x_axis_cb = ttk.Combobox(btn_frame, values=["sec", "min", "hour"], width=8)
-        self.x_axis_cb.set("sec"); self.x_axis_cb.pack(side=tk.LEFT, padx=5)
+        self.x_axis_cb.set("hour"); self.x_axis_cb.pack(side=tk.LEFT, padx=5)
         
         ttk.Button(btn_frame, text="Plot", command=self.plot).pack(side=tk.LEFT, padx=5)
         ttk.Button(btn_frame, text="Merge Raw Data into df_FP", command=self.merge).pack(side=tk.LEFT, padx=5)
@@ -305,6 +305,7 @@ class Panel3_CamProcess(ttk.Frame):
         self.data_mgr.df_wheel_L_indices = self.data_mgr.get_wheel_indices(df, df.columns[cl], self.data_mgr.wheel_interval, 'DIO_wheel_L')
         self.data_mgr.df_wheel_R_indices = self.data_mgr.get_wheel_indices(df, df.columns[cr], self.data_mgr.wheel_interval, 'DIO_wheel_R')
         self.data_mgr.log("CAM data processed successfully.", "INFO")
+        self.plot()
 
     def plot(self):
         df = self.data_mgr.df_cam
@@ -361,7 +362,7 @@ class Panel4_FedProcess(ttk.Frame):
         ttk.Button(btn_frame, text="Process Data", command=self.proc).pack(side=tk.LEFT, padx=5)
         ttk.Label(btn_frame, text="X-Axis Unit:").pack(side=tk.LEFT, padx=5)
         self.x_axis_cb = ttk.Combobox(btn_frame, values=["sec", "min", "hour"], width=10)
-        self.x_axis_cb.set("sec"); self.x_axis_cb.pack(side=tk.LEFT, padx=5)
+        self.x_axis_cb.set("hour"); self.x_axis_cb.pack(side=tk.LEFT, padx=5)
         
         ttk.Button(btn_frame, text="Plot", command=self.plot).pack(side=tk.LEFT, padx=5)
         ttk.Button(btn_frame, text="Merge Raw Data into df_FP", command=self.merge).pack(side=tk.LEFT, padx=5)
@@ -387,6 +388,7 @@ class Panel4_FedProcess(ttk.Frame):
         self.data_mgr.df_fed_L, self.data_mgr.df_fed_L_indices = self._process_fed_files(self.data_mgr.raw_fed_l_files, 'DIO_fed_L')
         self.data_mgr.df_fed_R, self.data_mgr.df_fed_R_indices = self._process_fed_files(self.data_mgr.raw_fed_r_files, 'DIO_fed_R')
         self.data_mgr.log("FED data processed successfully.", "INFO")
+        self.plot()
 
     def plot(self):
         c = int(self.ef.get()); factor = {"sec": 1.0, "min": 1/60.0, "hour": 1/3600.0}[self.x_axis_cb.get()]
@@ -394,8 +396,8 @@ class Panel4_FedProcess(ttk.Frame):
             if df.empty: return
             ax.clear(); ax.step(df[self.data_mgr.time_col] * factor, df.iloc[:,c])
             ax.set_title(label); ax.set_xlabel(f"Time ({self.x_axis_cb.get()})")
-            if not idx.empty:
-                for t in idx[self.data_mgr.time_col]: ax.axvline(t * factor, color='r', alpha=0.5)
+            # if not idx.empty:
+            #     for t in idx[self.data_mgr.time_col]: ax.axvline(t * factor, color='r', alpha=0.5)
         _plot_ax(self.data_mgr.df_fed_L, self.data_mgr.df_fed_L_indices, 'DIO_fed_L', self.ax1)
         _plot_ax(self.data_mgr.df_fed_R, self.data_mgr.df_fed_R_indices, 'DIO_fed_R', self.ax2)
         self.fig.tight_layout(); self.canvas.draw()
