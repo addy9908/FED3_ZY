@@ -145,7 +145,7 @@ class Panel1_Browser(ttk.Frame):
 
     def make_list(self, p, title, lst, col):
         f = ttk.Frame(p); f.grid(row=0, column=col, padx=5, sticky="n")
-        ttk.Label(f, text=title).pack(); lb = tk.Listbox(f, height=10, width=35); lb.pack()
+        ttk.Label(f, text=title).pack(); lb = tk.Listbox(f, height=10, width=25); lb.pack()
         
         def add():
             for file in filedialog.askopenfilenames(filetypes=[("CSV", "*.csv")]):
@@ -181,8 +181,8 @@ class Panel2_FPProcess(ttk.Frame):
         self.epoly = self.mk_ent(f, "Polyfit Power:", "2", 6)
         
         bf = ttk.Frame(self); bf.pack(pady=5)
-        ttk.Button(bf, text="Preview Raw", command=self.preview).pack(side=tk.LEFT, padx=10)
-        ttk.Button(bf, text="Process dF/F", command=self.process).pack(side=tk.LEFT, padx=10)
+        ttk.Button(bf, text="1. Preview Raw", command=self.preview).pack(side=tk.LEFT, padx=10)
+        ttk.Button(bf, text="2. Process dF/F", command=self.process).pack(side=tk.LEFT, padx=10)
         
         self.fig = Figure(figsize=(6, 6))
         self.ax1 = self.fig.add_subplot(211)
@@ -275,13 +275,13 @@ class Panel3_CamProcess(ttk.Frame):
         ttk.Label(f, text="minimal Interval(s):").grid(row=0,column=4); self.ei = ttk.Entry(f, width=4); self.ei.insert(0,"5"); self.ei.grid(row=0,column=5, padx=10)
         
         btn_frame = ttk.Frame(self); btn_frame.pack(pady=5)
-        ttk.Button(btn_frame, text="Process Data", command=self.proc).pack(side=tk.LEFT, padx=5)
+        ttk.Button(btn_frame, text="1. Process Data", command=self.proc).pack(side=tk.LEFT, padx=5)
         ttk.Label(btn_frame, text="X-Axis Unit:").pack(side=tk.LEFT, padx=5)
         self.x_axis_cb = ttk.Combobox(btn_frame, values=["sec", "min", "hour"], width=8)
         self.x_axis_cb.set("hour"); self.x_axis_cb.pack(side=tk.LEFT, padx=5)
         
         ttk.Button(btn_frame, text="Plot", command=self.plot).pack(side=tk.LEFT, padx=5)
-        ttk.Button(btn_frame, text="Merge Raw Data into df_FP", command=self.merge).pack(side=tk.LEFT, padx=5)
+        ttk.Button(btn_frame, text="2. Merge Raw Data into df_FP", command=self.merge).pack(side=tk.LEFT, padx=5)
         
         self.fig = Figure(figsize=(6, 4)); self.ax1 = self.fig.add_subplot(211); self.ax2 = self.fig.add_subplot(212)
         self.canvas = FigureCanvasTkAgg(self.fig, master=self); self.canvas.get_tk_widget().pack(fill="both", expand=True)
@@ -359,13 +359,13 @@ class Panel4_FedProcess(ttk.Frame):
         ttk.Label(f, text="Pellet Col:").pack(side=tk.LEFT); self.ef = ttk.Entry(f, width=5); self.ef.insert(0,"3"); self.ef.pack(side=tk.LEFT)
         
         btn_frame = ttk.Frame(self); btn_frame.pack(pady=5)
-        ttk.Button(btn_frame, text="Process Data", command=self.proc).pack(side=tk.LEFT, padx=5)
+        ttk.Button(btn_frame, text="1. Process Data", command=self.proc).pack(side=tk.LEFT, padx=5)
         ttk.Label(btn_frame, text="X-Axis Unit:").pack(side=tk.LEFT, padx=5)
         self.x_axis_cb = ttk.Combobox(btn_frame, values=["sec", "min", "hour"], width=10)
         self.x_axis_cb.set("hour"); self.x_axis_cb.pack(side=tk.LEFT, padx=5)
         
         ttk.Button(btn_frame, text="Plot", command=self.plot).pack(side=tk.LEFT, padx=5)
-        ttk.Button(btn_frame, text="Merge Raw Data into df_FP", command=self.merge).pack(side=tk.LEFT, padx=5)
+        ttk.Button(btn_frame, text="2. Merge Raw Data into df_FP", command=self.merge).pack(side=tk.LEFT, padx=5)
         
         self.fig = Figure(figsize=(6, 4)); self.ax1 = self.fig.add_subplot(211); self.ax2 = self.fig.add_subplot(212)
         self.canvas = FigureCanvasTkAgg(self.fig, master=self); self.canvas.get_tk_widget().pack(fill="both", expand=True)
@@ -436,7 +436,7 @@ class Panel5_CNO(ttk.Frame):
         ttk.Label(self, text="Step 5: Optional DIO CNO", font=("Helvetica", 12, "bold")).pack(pady=10)
         ttk.Label(self, text="Relative Time (hh:mm:ss):").pack()
         self.e = ttk.Entry(self); self.e.pack(pady=5)
-        ttk.Button(self, text="Generate DIO_CNO", command=self.add).pack()
+        ttk.Button(self, text="1. Generate DIO_CNO in df_FP", command=self.add).pack()
 
     def add(self):
         if self.data_mgr.df_FP.empty: return
@@ -475,7 +475,7 @@ class Panel6_Mapping(ttk.Frame):
         
         ttk.Label(f, text="Animal ID:").grid(row=0,column=0)
         self.eid = ttk.Entry(f); self.eid.insert(0,"M01"); self.eid.grid(row=0,column=1)
-        ttk.Button(f, text="Refresh", command=self.ref).grid(row=0,column=2, padx=5)
+        ttk.Button(f, text="1. Refresh", command=self.ref).grid(row=0,column=2, padx=5)
         
         self.lsig = tk.Listbox(f, height=10, exportselection=False)
         self.lsig.grid(row=1,column=0, columnspan=2, pady=5)
@@ -483,7 +483,7 @@ class Panel6_Mapping(ttk.Frame):
         self.ldio = tk.Listbox(f, height=10, selectmode=tk.MULTIPLE, exportselection=False)
         self.ldio.grid(row=1,column=2, pady=5)
         
-        ttk.Button(f, text="Add Mapping", command=self.add).grid(row=2, column=0, columnspan=3, pady=5)
+        ttk.Button(f, text="2. Add Mapping", command=self.add).grid(row=2, column=0, columnspan=3, pady=5)
         
         self.lmap = tk.Listbox(f, height=10, width=80)
         self.lmap.grid(row=3, column=0, columnspan=3, pady=5)
@@ -599,7 +599,7 @@ class Panel7_Alignment(ttk.Frame):
         f_top = ttk.Frame(self); f_top.pack(fill="x", padx=10, pady=5)
         ttk.Button(f_top, text="Get Sampling Rate (Hz)", command=self.get_sr).pack(side=tk.LEFT, padx=5)
         self.lbl_sr = ttk.Label(f_top, text="SR: -- Hz", font=("Helvetica", 10, "bold"), foreground="blue"); self.lbl_sr.pack(side=tk.LEFT, padx=5)
-        ttk.Button(f_top, text="Refresh DIO Rows", command=self.refresh_rows).pack(side=tk.RIGHT, padx=5)
+        ttk.Button(f_top, text="1. Refresh DIO Rows", command=self.refresh_rows).pack(side=tk.RIGHT, padx=5)
         
         self.row_container = ttk.Frame(self); self.row_container.pack(fill="both", expand=True, padx=10, pady=10)
         self.dio_entries = {}  
@@ -634,7 +634,7 @@ class Panel7_Alignment(ttk.Frame):
             ttk.Checkbutton(f_row, text="Offset", variable=var_off).pack(side=tk.LEFT, padx=2)
             
             self.dio_entries[prefix] = (e_pre, e_post, var_on, var_off)
-            ttk.Button(f_row, text="Align", command=lambda p=prefix: self.align_prefix(p)).pack(side=tk.LEFT, padx=10)
+            ttk.Button(f_row, text="2. Align", command=lambda p=prefix: self.align_prefix(p)).pack(side=tk.LEFT, padx=10)
             ttk.Button(f_row, text="Save CSVs", command=lambda p=prefix: self.save_prefix_csv(p)).pack(side=tk.LEFT, padx=5)
 
     def align_prefix(self, prefix):
@@ -725,7 +725,7 @@ class Panel8_Heatmap(ttk.Frame):
         f_nav = ttk.Frame(self)
         f_nav.pack(fill="x", pady=5)
         
-        ttk.Button(f_nav, text="Refresh", command=self.refresh_keys).pack(side=tk.LEFT, padx=5)
+        ttk.Button(f_nav, text="1. Refresh", command=self.refresh_keys).pack(side=tk.LEFT, padx=5)
         ttk.Button(f_nav, text="<< Prev", command=self.prev_plot).pack(side=tk.LEFT, padx=5)
         self.cb_keys = ttk.Combobox(f_nav, width=45)
         self.cb_keys.pack(side=tk.LEFT, padx=5)
@@ -738,7 +738,7 @@ class Panel8_Heatmap(ttk.Frame):
         
         ttk.Label(f_opt, text="Mode:").pack(side=tk.LEFT, padx=2)
         self.cb_mode = ttk.Combobox(f_opt, values=["Raw dF/F", "Z-Score (Baseline)", "Median Z-Score (Full Trace)"], width=20)
-        self.cb_mode.set("Raw dF/F")
+        self.cb_mode.set("Median Z-Score (Full Trace)")
         self.cb_mode.pack(side=tk.LEFT, padx=2)
         
         ttk.Label(f_opt, text="Base Start(s):").pack(side=tk.LEFT, padx=2)
@@ -752,7 +752,7 @@ class Panel8_Heatmap(ttk.Frame):
         self.cb_cmap.set('viridis')
         self.cb_cmap.pack(side=tk.LEFT, padx=2)
         
-        ttk.Button(f_opt, text="Plot", command=self.plot).pack(side=tk.LEFT, padx=10)
+        ttk.Button(f_opt, text="2. Plot", command=self.plot).pack(side=tk.LEFT, padx=10)
 
         # 2.5 AUC Frame (Packed next to Options)
         f_auc = ttk.Frame(self)
@@ -821,16 +821,17 @@ class Panel8_Heatmap(ttk.Frame):
             if base_mask.any():
                 for col in df_plot.columns:
                     b_data = df_plot.loc[base_mask, col]
-                    b_mean = b_data.mean()
-                    b_std = b_data.std() if b_data.std() > 0 else 1
-                    df_plot[col] = (df_plot[col] - b_mean) / b_std
+                    b_med = b_data.median() # use median rather than mean
+                    b_mad = np.median(np.abs(b_data - b_med))
+                    scale = (b_mad * 1.4826) if b_mad > 0 else (b_data.std() if b_data.std() > 0 else 1)
+                    df_plot[col] = (df_plot[col] - b_med) / scale
                     
         elif mode == "Median Z-Score (Full Trace)":
             sig_name = key.split("|")[1].strip()
             full_trace = self.data_mgr.df_FP[sig_name]
             med = full_trace.median()
             mad = np.median(np.abs(full_trace - med))
-            scale = (mad * 1.4826) if mad > 0 else (full_trace.std() or 1)
+            scale = (mad * 1.4826) if mad > 0 else (full_trace.std() if full_trace.std() > 0 else 1)
             for col in df_plot.columns:
                 df_plot[col] = (df_plot[col] - med) / scale
                 
@@ -1384,7 +1385,7 @@ class FPFEDApp(tk.Tk):
     def __init__(self):
         super().__init__()
         self.title("FP/FED Multi-Panel Synchronizer")
-        self.geometry("1450x850")
+        self.geometry("1550x850")
         
         self.data_mgr = DataManager(logger=self.log_message, on_df_update=self.update_global_preview)
         ttk.Style().theme_use('clam')
@@ -1395,6 +1396,9 @@ class FPFEDApp(tk.Tk):
         lf, rf = ttk.Frame(paned), ttk.Frame(paned)
         paned.add(lf, weight=3)
         paned.add(rf, weight=1)
+        
+        self.update()  # Forces Tkinter to calculate window size on screen
+        paned.sashpos(0, 1150) 
         
         # Tabs
         self.nb = ttk.Notebook(lf)
