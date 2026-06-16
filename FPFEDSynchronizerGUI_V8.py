@@ -1,6 +1,6 @@
 '''
 20260616 (V8):
-    1. add delete to file liist
+    1. add delete to file list
     2. add clear all to the main panel
     3. add two AUC for pre and post event in heatmap panel
     4. todo: the fig is still out of the canvas
