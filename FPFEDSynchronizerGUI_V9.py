@@ -1,6 +1,5 @@
 '''
 20260703 (V9):
-    1. Realize that some pellet count is not precise, need to rebuild from time col
     2. get the start time (after 10s sound and light) and show it on GUI
     3. before merge, add a time offset field to sync between computers, default value is o sec
 
@@ -507,7 +506,7 @@ class Panel4_FedProcess(ttk.Frame):
         c = int(self.ef.get())
         df = self.data_mgr.enforce_monotonic(df, c)
         
-        if False:
+        if False: # did not use this code, because our data did not record at this way
             # --- NEW: Rebuild the pellet count column ---
             dt = df[self.data_mgr.time_col].diff()
             valid_fall_mask = (dt >= 0.185) & (dt <= 0.215) # 200ms pulse for pellet drop
