@@ -1,6 +1,5 @@
 '''
 20260703 (V9):
-    1. Realize that some pellet count is not precise, need to rebuild from time col
     2. get the start time (after 10s sound and light) and show it on GUI
     3. before merge, add a time offset field to sync between computers, default value is o sec
 
